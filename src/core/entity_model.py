@@ -1,19 +1,9 @@
 from src.core.abstract_model import name_id
 
 
-"""
-Общий класс для наследования. Содержит стандартное определение: код, наименование
-"""
 class entity_model(name_id):
-    __name:str = ""
-
     """
-    Наименование
+    Общий класс для наследования. Содержит стандартное определение: код, наименование
     """
-    @property
-    def name(self) -> str:
-        return self.__name
-
-    @name.setter
-    def name(self, value:str):
-        self.__name = value.strip()
+    def __init__(self, name: str = None) -> None:
+        super().__init__(name=name)
