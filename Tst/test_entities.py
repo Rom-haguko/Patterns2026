@@ -8,7 +8,21 @@
 #    "python.testing.pytestEnabled": true
 #}
 
+from src.core.abstract_model import name_id
+
+class test_entity(name_id):
+    pass
 
 # Пример простого теста
-def test_start():
-    assert 1 == 1
+def abstract_model_get_id_not_null():
+
+    entity = test_entity()
+
+    # Дейтсвие
+    result = entity.id
+
+    # Проверка
+    assert result != ""
+
+
+

@@ -1,10 +1,10 @@
-from Src.Core.abstract_model import abstact_model
+from src.core.abstract_model import name_id
 
 
 """
 Общий класс для наследования. Содержит стандартное определение: код, наименование
 """
-class entity_model(abstact_model):
+class entity_model(name_id):
     __name:str = ""
 
     """

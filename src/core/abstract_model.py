@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from uuid import uid64
+from uuid import uuid4
 
 class name_id(ABC):
     """
@@ -9,7 +9,7 @@ class name_id(ABC):
         """
         Пустой конструктор.
         """
-        self.__id = str(uid64())
+        self.__id = str(uuid4())
         self.__name = ""
 
     @property
