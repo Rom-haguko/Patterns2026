@@ -54,4 +54,10 @@ class name_id(ABC):
         """
         if not value or not isinstance(value, str) or not value.strip():
             raise arguments_exception(field="name", message="Имя объекта не может быть пустым")
-        self._name = value.strip()
+        
+        value_clean = value.strip()
+
+        if len(value_clean) > 50:
+            raise arguments_exception(field="name", message="Имя объекта не может быть длиннее 50 символов")
+
+        self._name = value_clean
