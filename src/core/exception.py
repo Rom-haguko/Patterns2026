@@ -1,17 +1,54 @@
 class arguments_exception(Exception):
+    """
+    Пользовательское исключение для ошибок валидации аргументов
+    """
+
     def __init__(self, field: str = "", message: str = "", stack_trace: str = ""):
-        self.__field: str = str(field).strip() if field else ""
-        self.__message: str = str(message).strip() if message else ""
-        self.__stack_trace: str = str(stack_trace).strip() if stack_trace else ""
-        super().__init__(self.__message)
+        """
+        Инициализация исключения с информацией о поле, сообщении и стеке
+        """
+        self.__field = str(field).strip()
+        self.__message = str(message).strip()
+        self.__stack_trace = str(stack_trace).strip()
+        super().__init__(f"Ошибка аргумента '{self.__field}': {self.__message}")
 
     @property
     def field(self) -> str:
+        """
+        Имя поля, вызвавшего исключение
+        """
         return self.__field
 
     @property
     def message(self) -> str:
+        """
+        Сообщение об ошибке
+        """
         return self.__message
 
-    def __str__(self) -> str:
-        return f"Ошибка: Некорректный аргумент! [{self.__field}]\n{self.__message}\n{self.__stack_trace}"
+    @property
+    def stack_trace(self) -> str:
+        """
+        Трассировка стека вызовов
+        """
+        return self.__stack_trace
+
+
+class operation_exception(Exception):
+    """
+    Пользовательское исключение для ошибок выполнения операций
+    """
+
+    def __init__(self, message: str = ""):
+        """
+        Инициализация исключения операции
+        """
+        self.__message = str(message).strip()
+        super().__init__(f"Ошибка операции: {self.__message}")
+
+    @property
+    def message(self) -> str:
+        """
+        Сообщение об ошибке
+        """
+        return self.__message
