@@ -61,3 +61,6 @@ class name_id(ABC):
             raise arguments_exception(field="name", message="Имя объекта не может быть длиннее 50 символов")
 
         self._name = value_clean
+
+
+abstract_model = name_id
