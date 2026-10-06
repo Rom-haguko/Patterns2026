@@ -9,28 +9,42 @@ class organization_model(name_id):
     """
 
     def __init__(
-        self, 
-        name: str = "", 
-        inn: str = "", 
-        bik: str = "", 
-        account: str = "", 
-        ownership_form: str = ""
+        self,
+        name: str = None,
+        inn: str = "",
+        bik: str = "",
+        account: str = "",
+        ownership_form: str = "",
+        corr_account: str = ""
     ):
         """
         Инициализирует данные компании.
 
-        :param name: Название контрагента (до 50 символов)
-        :param inn: ИНН (строка из 10 или 12 цифр)
-        :param bik: Банковский идентификационный код (9 цифр)
-        :param account: Номер р/с (20 цифр)
-        :param ownership_form: ОПФ / форма собственности (например, "ООО", "ИП", до 5 символов)
+        :param name: Название контрагента (до 50 символов). Необязательный параметр.
+        :param inn: ИНН (строка из 10 или 12 цифр). Пустая строка — не заполнен.
+        :param bik: Банковский идентификационный код (9 цифр). Пустая строка — не заполнен.
+        :param account: Номер р/с (20 цифр). Пустая строка — не заполнен.
+        :param ownership_form: ОПФ / форма собственности (например, "ООО", "ИП", до 5 символов). Пустая строка — не заполнена.
+        :param corr_account: Корреспондентский счет. Пустая строка — не заполнен.
         """
-        super().__init__()
-        self.name = name
-        self.inn = inn
-        self.bik = bik
-        self.account = account
-        self.ownership_form = ownership_form
+        super().__init__(name=name)
+        # Устанавливаем только непустые значения — пустые оставляем без валидации
+        self.__inn = ""
+        self.__bik = ""
+        self.__account = ""
+        self.__ownership_form = ""
+        self.__corr_account = ""
+
+        if inn:
+            self.inn = inn
+        if bik:
+            self.bik = bik
+        if account:
+            self.account = account
+        if ownership_form:
+            self.ownership_form = ownership_form
+        if corr_account:
+            self.corr_account = corr_account
 
     @property
     def inn(self) -> str:
@@ -83,6 +97,20 @@ class organization_model(name_id):
         self.__bik = value
 
     @property
+    def bic(self) -> str:
+        """
+        Псевдоним (алиас) для свойства bik. Используется для обратной совместимости.
+        """
+        return self.__bik
+
+    @bic.setter
+    def bic(self, value):
+        """
+        Сеттер-алиас для bik.
+        """
+        self.bik = value
+
+    @property
     def account(self) -> str:
         """
         Возвращает расчетный счет.
@@ -131,3 +159,39 @@ class organization_model(name_id):
             raise arguments_exception("ownership_form", "Длина формы собственности не может превышать 5 символов")
 
         self.__ownership_form = value
+
+    @property
+    def ownership(self) -> str:
+        """
+        Псевдоним (алиас) для свойства ownership_form. Используется для обратной совместимости.
+        """
+        return self.__ownership_form
+
+    @ownership.setter
+    def ownership(self, value):
+        """
+        Сеттер-алиас для ownership_form.
+        """
+        self.ownership_form = value
+
+    @property
+    def corr_account(self) -> str:
+        """
+        Возвращает корреспондентский счет.
+        """
+        return self.__corr_account
+
+    @corr_account.setter
+    def corr_account(self, value):
+        """
+        Устанавливает корреспондентский счет. Допускается пустое значение.
+        """
+        if value is None:
+            self.__corr_account = ""
+            return
+        if not isinstance(value, (str, int)):
+            raise arguments_exception("corr_account", "Корр. счет должен быть строкой или числом")
+        val_str = str(value).strip()
+        if val_str and not val_str.isdigit():
+            raise arguments_exception("corr_account", "Корр. счет может содержать только цифры")
+        self.__corr_account = val_str
