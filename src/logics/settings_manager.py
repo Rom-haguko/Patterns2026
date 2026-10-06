@@ -4,6 +4,7 @@ from src.core.abstract_manager import abstract_manager
 from src.core.validator import validator, operation_exception
 from src.models.settings_model import settings_model
 from src.models.organization_model import organization_model
+from src.core.file_resolver import FilePathResolver
 
 
 class settings_manager(abstract_manager):
@@ -57,6 +58,16 @@ class settings_manager(abstract_manager):
         """
         return self.__data
 
+    def _get_first_valid(self, data_dict: dict, keys: list) -> str:
+        """
+        Ищет в словаре первое непустое значение по списку ключей.
+        Удобно для обработки опечаток и альтернативных названий полей в JSON.
+        """
+        for key in keys:
+            if key in data_dict and data_dict[key]:
+                return str(data_dict[key]).strip()
+        return ""
+
     def convert(self) -> bool:
         """
         Обработка загруженных сырых данных JSON и преобразование в модель settings_model.
@@ -69,60 +80,50 @@ class settings_manager(abstract_manager):
         if "company" in self.__data and isinstance(self.__data["company"], dict):
             comp_dict = self.__data["company"]
             company = organization_model()
-            if "name" in comp_dict and comp_dict["name"]:
-                company.name = comp_dict["name"]
-            if "inn" in comp_dict and comp_dict["inn"]:
-                company.inn = str(comp_dict["inn"])
-            elif "inn_kpp" in comp_dict and comp_dict["inn_kpp"]:
+            
+            # Безопасное присвоение (только если значение не пустое)
+            name_val = self._get_first_valid(comp_dict, ["name"])
+            if name_val: company.name = name_val
+            
+            inn_val = self._get_first_valid(comp_dict, ["inn"])
+            if not inn_val and "inn_kpp" in comp_dict and comp_dict["inn_kpp"]:
                 inn_part = str(comp_dict["inn_kpp"]).split("/")[0].strip()
                 if len(inn_part) in (10, 12) and inn_part.isdigit():
-                    company.inn = inn_part
-            if "bik" in comp_dict and comp_dict["bik"]:
-                company.bik = str(comp_dict["bik"])
-            elif "bic" in comp_dict and comp_dict["bic"]:
-                company.bik = str(comp_dict["bic"])
-            if "account" in comp_dict and comp_dict["account"]:
-                company.account = str(comp_dict["account"])
-            if "ownership_form" in comp_dict and comp_dict["ownership_form"]:
-                company.ownership_form = str(comp_dict["ownership_form"])
-            elif "ownership" in comp_dict and comp_dict["ownership"]:
-                company.ownership_form = str(comp_dict["ownership"])
+                    inn_val = inn_part
+            if inn_val: company.inn = inn_val
+
+            bik_val = self._get_first_valid(comp_dict, ["bik", "bic"])
+            if bik_val: company.bik = bik_val
+
+            account_val = self._get_first_valid(comp_dict, ["account"])
+            if account_val: company.account = account_val
+
+            ownership_val = self._get_first_valid(comp_dict, ["ownership_form", "ownership"])
+            if ownership_val: company.ownership_form = ownership_val
 
             self.__settings.company = company
 
-        if "boss_name" in self.__data:
-            self.__settings.boss_name = self.__data["boss_name"]
-        elif "company" in self.__data and isinstance(self.__data["company"], dict) and "ceo" in self.__data["company"]:
-            self.__settings.boss_name = self.__data["company"]["ceo"]
-
-        if "account_name" in self.__data:
-            self.__settings.account_name = self.__data["account_name"]
+        # Маппинг полей руководителя и бухгалтера
+        boss_val = self._get_first_valid(self.__data, ["boss_name"])
+        if not boss_val and "company" in self.__data and isinstance(self.__data["company"], dict):
+            boss_val = self._get_first_valid(self.__data["company"], ["ceo"])
+        if boss_val:
+            self.__settings.boss_name = boss_val
+            
+        acc_name_val = self._get_first_valid(self.__data, ["account_name"])
+        if acc_name_val:
+            self.__settings.account_name = acc_name_val
 
         return True
+    
 
     def load(self, file_name: str = "") -> bool:
-        """
-        Загрузка данных из конфигурационного файла.
-        
-        :param file_name: Путь к файлу конфигурации (по умолчанию settings.json).
-        :return: True при успешной загрузке.
-        :raises operation_exception: При ошибке загрузки или валидации данных.
-        """
+        # ... (валидация и определение inner_file_name остаются)
         inner_file_name = file_name.strip() if file_name and file_name.strip() != "" else self.__default_file_name
         validator.validate(inner_file_name, str)
 
-        resolved_file = inner_file_name
-        if not os.path.isabs(resolved_file) and not os.path.exists(resolved_file):
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            candidate = os.path.join(base_dir, inner_file_name)
-            if os.path.exists(candidate):
-                resolved_file = candidate
-            elif inner_file_name in ("settings.json", "seetings.json"):
-                for alt in ("settings.json", "seetings.json"):
-                    alt_path = os.path.join(base_dir, alt) if not os.path.exists(alt) else alt
-                    if os.path.exists(alt_path):
-                        resolved_file = alt_path
-                        break
+        # Делегируем поиск файла отдельному резолверу
+        resolved_file = FilePathResolver.resolve(inner_file_name, __file__)
 
         try:
             with open(resolved_file, "r", encoding="utf-8") as file:

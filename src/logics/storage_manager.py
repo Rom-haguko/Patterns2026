@@ -22,19 +22,32 @@ class storage_manager(abstract_manager):
     def __new__(cls, *args, **kwargs):
         """
         Конструктор Singleton: гарантирует единственный экземпляр класса в памяти.
-        При первом создании инициализирует хранилище и формирует первичные данные.
+        Используем object.__new__, чтобы обойти возможные проблемы с __new__ в abstract_manager.
         """
         if not hasattr(cls, "instance"):
-            cls.instance = super(storage_manager, cls).__new__(cls)
-            cls.instance.__data = {}
-            # Инициализация пустых списков под каждую доменную сущность
-            cls.instance.__data[cls.range_key()] = []
-            cls.instance.__data[cls.nomenclature_key()] = []
-            cls.instance.__data[cls.group_key()] = []
-            cls.instance.__data[cls.storage_key()] = []
-            # Первый старт: заполнение первичными данными
-            cls.instance.convert()
+            cls.instance = object.__new__(cls)
+            cls.instance._initialized = False 
         return cls.instance
+
+    def __init__(self):
+        """
+        Инициализация состояния менеджера и первичных данных.
+        Благодаря флагу _initialized реальная настройка происходит только при первом запуске.
+        """
+        # Если уже инициализирован, просто выходим (защита от повторного сброса данных)
+        if getattr(self, "_initialized", False):
+            return
+
+        self.__data = {}
+        # Инициализация пустых списков под каждую доменную сущность
+        self.__data[self.range_key()] = []
+        self.__data[self.nomenclature_key()] = []
+        self.__data[self.group_key()] = []
+        self.__data[self.storage_key()] = []
+        
+        # Первый старт: заполнение первичными данными
+        self.convert()
+        self._initialized = True
 
     def __eq__(self, other: object) -> bool:
         """
@@ -43,7 +56,7 @@ class storage_manager(abstract_manager):
         """
         return isinstance(other, storage_manager)
 
-    # ──────────────────────────────── Ключи доступа ────────────────────────────────
+
 
     @staticmethod
     def range_key() -> str:
