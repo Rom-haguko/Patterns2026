@@ -23,6 +23,6 @@ def test_resolve_handles_typo_seetings():
     """Проверка: если мы просим 'seetings.json', резолвер должен найти 'settings.json'."""
     resolved = FilePathResolver.resolve("seetings.json", __file__)
     
-    # Он должен был подменить имя и найти реальный файл
+    # Проверка
     assert resolved.endswith("settings.json")
     assert os.path.exists(resolved)

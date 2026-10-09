@@ -22,7 +22,6 @@ class storage_manager(abstract_manager):
     def __new__(cls, *args, **kwargs):
         """
         Конструктор Singleton: гарантирует единственный экземпляр класса в памяти.
-        Используем object.__new__, чтобы обойти возможные проблемы с __new__ в abstract_manager.
         """
         if not hasattr(cls, "instance"):
             cls.instance = object.__new__(cls)
@@ -150,8 +149,8 @@ class storage_manager(abstract_manager):
         Формируется минимальный необходимый справочник: граммы, килограммы,
         миллилитры, литры, штуки.
         """
-        gram = range_model("грамм", 1)
-        kilogram = range_model("килограмм", 1000, gram)
+        kilogram = range_model.create_kilogramm()
+        gram = kilogram.base  
         milliliter = range_model("миллилитр", 1)
         liter = range_model("литр", 1000, milliliter)
         piece = range_model("штука", 1)

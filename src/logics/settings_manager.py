@@ -118,11 +118,16 @@ class settings_manager(abstract_manager):
     
 
     def load(self, file_name: str = "") -> bool:
-        # ... (валидация и определение inner_file_name остаются)
+        """
+        Загрузка данных из конфигурационного файла.
+
+        :param file_name: Путь к файлу конфигурации (по умолчанию settings.json).
+        :return: True при успешной загрузке.
+        :raises operation_exception: При ошибке загрузки или валидации данных.
+        """
         inner_file_name = file_name.strip() if file_name and file_name.strip() != "" else self.__default_file_name
         validator.validate(inner_file_name, str)
 
-        # Делегируем поиск файла отдельному резолверу
         resolved_file = FilePathResolver.resolve(inner_file_name, __file__)
 
         try:

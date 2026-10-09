@@ -15,28 +15,27 @@ class FilePathResolver:
         :param current_file: Абсолютный путь к файлу, из которого вызван метод (__file__).
         :return: Абсолютный путь к файлу.
         """
-        # 1. Если передан абсолютный путь и файл существует - возвращаем его
+        # Если передан существующий абсолютный путь
         if os.path.isabs(file_name) and os.path.exists(file_name):
             return file_name
             
         current_dir = os.path.dirname(os.path.abspath(current_file))
         
-        # 2. Умный поиск корня проекта: поднимаемся вверх по дереву папок,
-        # пока не найдем директорию, содержащую папки 'src' и 'Tst'.
+        # Поиск корня проекта по наличию ключевых директорий
         while True:
             if os.path.exists(os.path.join(current_dir, "src")) and os.path.exists(os.path.join(current_dir, "Tst")):
                 break
             parent = os.path.dirname(current_dir)
-            if parent == current_dir:  # Достигли корня диска
+            if parent == current_dir:
                 break
             current_dir = parent
             
-        # 3. Пытаемся найти файл по точному имени в корне проекта
+        # Поиск файла в корне проекта
         candidate = os.path.join(current_dir, file_name)
         if os.path.exists(candidate):
             return candidate
             
-        # 4. Фолбэк (защита от опечаток в названии, например seetings.json)
+        # Проверка альтернативных вариантов наименования
         known_typos_map = {
             "seetings.json": "settings.json",
             "settings.json": "seetings.json"
@@ -47,6 +46,4 @@ class FilePathResolver:
             if os.path.exists(alt_path):
                 return alt_path
                 
-        # Если ничего не нашли, возвращаем исходное имя.
-        # Метод open() сам выбросит FileNotFoundError, который settings_manager перехватит.
         return candidate

@@ -77,3 +77,14 @@ class range_model(name_id):
         Псевдоним (алиас) для свойства base_range.
         """
         return self.__base_range
+
+    @staticmethod
+    def create_kilogramm():
+        """
+        Фабричный метод для создания связки 'грамм -> килограмм'
+        """
+        gramm = range_model(name="грамм", conversion_factor=1)
+        
+        result = range_model(name="килограмм", conversion_factor=1000, base_range=gramm)
+
+        return result
