@@ -35,3 +35,14 @@ class storage_model(name_id):
             raise arguments_exception("address", "Адрес должен быть строковым значением")
 
         self.__address = value.strip()
+
+    @staticmethod
+    def create(name: str = "", address: str = "") -> 'storage_model':
+        """
+        Фабричный метод создания объекта склада.
+
+        :param name: Название склада (до 50 символов)
+        :param address: Физический адрес
+        :return: Экземпляр storage_model
+        """
+        return storage_model(name=name, address=address)

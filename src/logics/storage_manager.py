@@ -1,19 +1,22 @@
 from src.core.abstract_manager import abstract_manager
 from src.core.validator import validator
+from src.core.file_resolver import FilePathResolver
 from src.models.nomenclature_group_model import nomenclature_group_model
 from src.models.nomenclature_model import nomenclature_model
 from src.models.range_model import range_model
 from src.models.storage_model import storage_model
+from src.models.recipe_model import recipe_model
 
 
 class storage_manager(abstract_manager):
     """
     Менеджер хранилища (кеш в памяти) для централизованного хранения
     и доступа к доменным сущностям: единицам измерения, группам номенклатуры,
-    номенклатуре и складам.
+    номенклатуре, складам и технологическим картам (рецептам).
 
     Реализует паттерн Одиночка (Singleton) и контракт abstract_manager.
-    При первом создании экземпляра автоматически формирует первичные данные (convert).
+    При первом создании экземпляра автоматически формирует первичные данные (convert)
+    с использованием фабричных методов доменных моделей.
     """
 
     # Внутренний словарь-хранилище кешированных списков доменных сущностей
@@ -43,8 +46,9 @@ class storage_manager(abstract_manager):
         self.__data[self.nomenclature_key()] = []
         self.__data[self.group_key()] = []
         self.__data[self.storage_key()] = []
+        self.__data[self.recipe_key()] = []
         
-        # Первый старт: заполнение первичными данными
+        # Первый старт: заполнение первичными данными через фабричные методы
         self.convert()
         self._initialized = True
 
@@ -55,7 +59,7 @@ class storage_manager(abstract_manager):
         """
         return isinstance(other, storage_manager)
 
-
+    # ──────────────────────────────── Ключи коллекций ──────────────────────────────
 
     @staticmethod
     def range_key() -> str:
@@ -84,6 +88,13 @@ class storage_manager(abstract_manager):
         Ключ доступа к коллекции складов (storage_model).
         """
         return "storage_model"
+
+    @staticmethod
+    def recipe_key() -> str:
+        """
+        Ключ доступа к коллекции технологических карт и рецептов (recipe_model).
+        """
+        return "recipe_model"
 
     # ──────────────────────────────── Свойства ─────────────────────────────────────
 
@@ -129,9 +140,10 @@ class storage_manager(abstract_manager):
 
     def convert(self) -> bool:
         """
-        Формирует первичные данные при первом старте приложения.
+        Формирует первичные данные при первом старте приложения с использованием
+        фабричных методов доменных моделей.
         Создаёт базовые единицы измерения, группы номенклатуры,
-        номенклатурные позиции и склады.
+        номенклатурные позиции, склады и технологические карты (рецепты).
 
         :return: True после успешного формирования первичных данных.
         """
@@ -139,44 +151,43 @@ class storage_manager(abstract_manager):
         self._build_groups()
         self._build_nomenclature()
         self._build_storages()
+        self._build_recipes()
         return True
 
     # ──────────────────────── Вспомогательные методы первого старта ───────────────
 
     def _build_ranges(self) -> None:
         """
-        Создаёт базовые единицы измерения и наполняет ими коллекцию.
-        Формируется минимальный необходимый справочник: граммы, килограммы,
-        миллилитры, литры, штуки.
+        Создаёт базовые единицы измерения через фабричные методы range_model
+        и наполняет ими коллекцию.
         """
         kilogram = range_model.create_kilogramm()
-        gram = kilogram.base  
-        milliliter = range_model("миллилитр", 1)
-        liter = range_model("литр", 1000, milliliter)
-        piece = range_model("штука", 1)
+        gram = kilogram.base
+        milliliter = range_model.create_milliliter()
+        liter = range_model.create_liter(milliliter)
+        piece = range_model.create_piece()
 
         for unit in (gram, kilogram, milliliter, liter, piece):
             self.add(self.range_key(), unit)
 
     def _build_groups(self) -> None:
         """
-        Создаёт базовые группы номенклатуры и наполняет ими коллекцию.
-        Группы соответствуют основным категориям продуктов ресторана «Ромашка».
+        Создаёт базовые группы номенклатуры через фабричные методы nomenclature_group_model
+        и наполняет ими коллекцию.
         """
-        group_names = [
-            "Сырьё",
-            "Полуфабрикаты",
-            "Готовая продукция",
-            "Упаковка",
+        groups = [
+            nomenclature_group_model.create_raw(),
+            nomenclature_group_model.create_semi_finished(),
+            nomenclature_group_model.create_finished(),
+            nomenclature_group_model.create_packaging(),
         ]
-        for name in group_names:
-            self.add(self.group_key(), nomenclature_group_model(name))
+        for group in groups:
+            self.add(self.group_key(), group)
 
     def _build_nomenclature(self) -> None:
         """
-        Создаёт базовые номенклатурные позиции и наполняет ими коллекцию.
-        Для каждой позиции устанавливаются группа и единица измерения
-        из уже сформированных справочников.
+        Создаёт базовые номенклатурные позиции через фабричный метод nomenclature_model.create
+        и наполняет ими коллекцию.
         """
         ranges = self.get(self.range_key())
         groups = self.get(self.group_key())
@@ -190,7 +201,9 @@ class storage_manager(abstract_manager):
 
         raw_group = find_group("Сырьё")
         semi_group = find_group("Полуфабрикаты")
+        finished_group = find_group("Готовая продукция")
         pack_group = find_group("Упаковка")
+
         gram = find_range("грамм")
         kilogram = find_range("килограмм")
         milliliter = find_range("миллилитр")
@@ -198,14 +211,20 @@ class storage_manager(abstract_manager):
         piece = find_range("штука")
 
         items = [
-            nomenclature_model("Мука пшеничная", "Мука пшеничная высший сорт, 50 кг мешок", raw_group, kilogram),
-            nomenclature_model("Соль", "Соль пищевая поваренная, 1 кг пачка", raw_group, kilogram),
-            nomenclature_model("Сахар", "Сахар-песок белый кристаллический, 50 кг мешок", raw_group, kilogram),
-            nomenclature_model("Масло подсолнечное", "Масло подсолнечное рафинированное, 5 л", raw_group, liter if liter else milliliter),
-            nomenclature_model("Тесто дрожжевое", "Тесто дрожжевое слоёное, полуфабрикат 1 кг", semi_group, kilogram),
-            nomenclature_model("Соус томатный", "Соус томатный базовый, полуфабрикат 200 г", semi_group, gram),
-            nomenclature_model("Коробка под пиццу 30 см", "Картонная коробка 300х300х40 мм", pack_group, piece),
-            nomenclature_model("Пакет бумажный", "Пакет бумажный крафт 20х30 см", pack_group, piece),
+            nomenclature_model.create("Мука пшеничная", "Мука пшеничная высший сорт, 50 кг мешок", raw_group, kilogram),
+            nomenclature_model.create("Соль", "Соль пищевая поваренная, 1 кг пачка", raw_group, kilogram),
+            nomenclature_model.create("Сахар", "Сахар-песок белый кристаллический, 50 кг мешок", raw_group, kilogram),
+            nomenclature_model.create("Масло подсолнечное", "Масло подсолнечное рафинированное, 5 л", raw_group, liter if liter else milliliter),
+            nomenclature_model.create("Тесто дрожжевое", "Тесто дрожжевое слоёное, полуфабрикат 1 кг", semi_group, kilogram),
+            nomenclature_model.create("Соус томатный", "Соус томатный базовый, полуфабрикат 200 г", semi_group, gram),
+            nomenclature_model.create("Коробка под пиццу 30 см", "Картонная коробка 300х300х40 мм", pack_group, piece),
+            nomenclature_model.create("Пакет бумажный", "Пакет бумажный крафт 20х30 см", pack_group, piece),
+            # Позиции, необходимые для рецепта Пицца Маргарита
+            nomenclature_model.create("Сыр Моцарелла", "Сыр Моцарелла классический для пиццы", raw_group, gram),
+            nomenclature_model.create("Масло оливковое", "Масло оливковое Extra Virgin", raw_group, milliliter),
+            nomenclature_model.create("Базилик свежий", "Базилик свежий зелёный листья", raw_group, gram),
+            nomenclature_model.create("Соль пищевая", "Соль пищевая мелкого помола", raw_group, gram),
+            nomenclature_model.create("Пицца Маргарита", "Пицца Маргарита классическая 30 см", finished_group, piece),
         ]
 
         for item in items:
@@ -213,9 +232,8 @@ class storage_manager(abstract_manager):
 
     def _build_storages(self) -> None:
         """
-        Создаёт базовые склады и наполняет ими коллекцию.
-        Соответствуют реальной топологии компании «Ромашка»: производственный цех
-        и склады при каждом ресторане.
+        Создаёт базовые склады через фабричный метод storage_model.create
+        и наполняет ими коллекцию.
         """
         storages_data = [
             ("Производственный цех", "г. Москва, ул. Цветочная, д. 10"),
@@ -226,4 +244,43 @@ class storage_manager(abstract_manager):
             ("Склад Ресторан №5 (Доставка 2)", "г. Москва, ул. Доставочная, д. 5"),
         ]
         for name, address in storages_data:
-            self.add(self.storage_key(), storage_model(name, address))
+            self.add(self.storage_key(), storage_model.create(name, address))
+
+    def _build_recipes(self) -> None:
+        """
+        Создаёт технологические карты (рецепты) через фабричные методы recipe_model
+        согласно собственной спецификации (Docs/Recipe.md) и наполняет ими коллекцию.
+        Формирует рецепт, содержащий полуфабрикаты, а также рецепт с упаковкой.
+        """
+        ranges = self.get(self.range_key())
+        groups = self.get(self.group_key())
+        nomenclatures = self.get(self.nomenclature_key())
+
+        # Попытка инициализировать рецепт напрямую из Markdown файла Recipe.md
+        recipe_margarita = None
+        try:
+            recipe_file = FilePathResolver.resolve("Docs/Recipe.md", __file__)
+            recipe_margarita = recipe_model.from_file(
+                recipe_file,
+                ranges=ranges,
+                groups=groups,
+                nomenclatures=nomenclatures
+            )
+        except Exception:
+            # Резервный вызов фабричного метода при отсутствии файла
+            recipe_margarita = recipe_model.create_pizza_margarita(
+                ranges=ranges,
+                groups=groups,
+                nomenclatures=nomenclatures
+            )
+
+        if recipe_margarita is not None:
+            self.add(self.recipe_key(), recipe_margarita)
+
+        # Рецепт с упаковкой (для курьерской доставки)
+        recipe_packaged = recipe_model.create_pizza_with_packaging(
+            ranges=ranges,
+            groups=groups,
+            nomenclatures=nomenclatures
+        )
+        self.add(self.recipe_key(), recipe_packaged)

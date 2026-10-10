@@ -84,3 +84,16 @@ class nomenclature_model(name_id):
             raise arguments_exception("range", "Параметр range должен быть экземпляром класса range_model")
 
         self.__range = value
+
+    @staticmethod
+    def create(name: str = "", full_name: str = "", group=None, range=None) -> 'nomenclature_model':
+        """
+        Фабричный метод создания номенклатурной позиции.
+
+        :param name: Краткое наименование (до 50 символов)
+        :param full_name: Полное наименование (до 255 символов)
+        :param group: Категория номенклатуры (nomenclature_group_model)
+        :param range: Единица измерения (range_model)
+        :return: Экземпляр nomenclature_model
+        """
+        return nomenclature_model(name=name, full_name=full_name, group=group, range=range)

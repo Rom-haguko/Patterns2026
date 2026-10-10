@@ -195,3 +195,32 @@ class organization_model(name_id):
         if val_str and not val_str.isdigit():
             raise arguments_exception("corr_account", "Корр. счет может содержать только цифры")
         self.__corr_account = val_str
+
+    @staticmethod
+    def create(
+        name: str = None,
+        inn: str = "",
+        bik: str = "",
+        account: str = "",
+        ownership_form: str = "",
+        corr_account: str = ""
+    ) -> 'organization_model':
+        """
+        Фабричный метод создания объекта организации.
+
+        :param name: Название контрагента
+        :param inn: ИНН (10 или 12 цифр)
+        :param bik: БИК (9 цифр)
+        :param account: Номер расчетного счета (20 цифр)
+        :param ownership_form: Форма собственности (до 5 символов)
+        :param corr_account: Корреспондентский счет
+        :return: Экземпляр organization_model
+        """
+        return organization_model(
+            name=name,
+            inn=inn,
+            bik=bik,
+            account=account,
+            ownership_form=ownership_form,
+            corr_account=corr_account
+        )
