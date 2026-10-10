@@ -74,9 +74,45 @@ class recipe_model(name_id):
     @property
     def gross_weight(self) -> float:
         """
-        Общий вес Брутто рецепта (сумма весов Брутто каждого ингредиента).
+        Общий вес Брутто рецепта.
+        Рассчитывается рекурсивно с учетом "Блюда в блюде": если ингредиент является 
+        полуфабрикатом (имеет свой рецепт), его брутто рассчитывается пропорционально 
+        на основе рецепта полуфабриката.
         """
-        return round(sum(row.brutto for row in self.__rows), 4)
+        def get_gross(rec_obj) -> float:
+            total = 0.0
+            for r in rec_obj.rows:
+                if r.nomenclature and getattr(r.nomenclature, 'recipe', None):
+                    # Это полуфабрикат! Спускаемся в его рецепт
+                    sub = r.nomenclature.recipe
+                    sub_net = sub.net_weight
+                    # Коэффициент масштабирования: сколько от выхода рецепта нам нужно
+                    factor = r.netto / sub_net if sub_net > 0 else 0
+                    total += get_gross(sub) * factor
+                else:
+                    # Простое сырьё
+                    total += r.brutto
+            return total
+            
+        return round(get_gross(self), 4)
+
+    @property
+    def net_weight(self) -> float:
+        """
+        Общий вес Нетто рецепта.
+        Рассчитывается рекурсивно. Для полуфабрикатов нетто в блюде равно их весу в строке.
+        """
+        def get_net(rec_obj) -> float:
+            total = 0.0
+            for r in rec_obj.rows:
+                if r.nomenclature and getattr(r.nomenclature, 'recipe', None):
+                    total += r.netto
+                else:
+                    total += r.netto
+            return total
+            
+        return round(get_net(self), 4)
+    
 
     @property
     def brutto(self) -> float:
@@ -98,13 +134,6 @@ class recipe_model(name_id):
         Псевдоним (алиас) для свойства gross_weight.
         """
         return self.gross_weight
-
-    @property
-    def net_weight(self) -> float:
-        """
-        Общий вес Нетто рецепта (сумма весов Нетто каждого ингредиента).
-        """
-        return round(sum(row.netto for row in self.__rows), 4)
 
     @property
     def netto(self) -> float:
@@ -419,6 +448,7 @@ class recipe_model(name_id):
         """
         Фабричный метод создания рецепта 'Пицца Маргарита' строго по спецификации Docs/Recipe.md.
         Содержит полуфабрикаты ('Тесто дрожжевое', 'Соус томатный') и рассчитывает Брутто и Нетто.
+        Реализует концепцию "Блюдо в блюде" через привязку внутренних рецептов к полуфабрикатам.
 
         :param ranges: Справочник единиц измерения (опционально)
         :param groups: Справочник групп номенклатуры (опционально)
@@ -464,6 +494,29 @@ class recipe_model(name_id):
         olive_oil = get_nomenclature("Масло оливковое", "Сырьё", "миллилитр", "Масло оливковое Extra Virgin")
         basil = get_nomenclature("Базилик свежий", "Сырьё", "грамм", "Базилик свежий листья")
         salt = get_nomenclature("Соль пищевая", "Сырьё", "грамм", "Соль пищевая поваренная")
+
+        # Внутренний рецепт для полуфабриката "Тесто дрожжевое" (Блюдо в блюде)
+        # При расчете общего веса пиццы программа "провалится" в этот рецепт
+        dough_inner_rows = [
+            recipe_row_model.create(get_nomenclature("Мука пшеничная", "Сырьё", "грамм", "Мука пшеничная в/с"), 500.0, 500.0, gram),
+            recipe_row_model.create(salt, 5.0, 5.0, gram),
+        ]
+        dough_inner_recipe = recipe_model.create(
+            name="Тесто дрожжевое (заготовка)",
+            rows=dough_inner_rows
+        )
+        dough.recipe = dough_inner_recipe
+
+        # Внутренний рецепт для полуфабриката "Соус томатный"
+        sauce_inner_rows = [
+            recipe_row_model.create(get_nomenclature("Томаты", "Сырьё", "грамм", "Томаты свежие"), 200.0, 180.0, gram),
+            recipe_row_model.create(salt, 2.0, 2.0, gram),
+        ]
+        sauce_inner_recipe = recipe_model.create(
+            name="Соус томатный (заготовка)",
+            rows=sauce_inner_rows
+        )
+        sauce.recipe = sauce_inner_recipe
 
         # Строки рецепта (состав на 1 порцию)
         # Брутто 280, Нетто 250
@@ -514,14 +567,14 @@ class recipe_model(name_id):
     ) -> 'recipe_model':
         """
         Фабричный метод создания рецепта 'Пицца Маргарита с упаковкой' для службы доставки.
-        Содержит как полуфабрикаты, так и упаковочный материал ('Коробка под пиццу 30 см').
+        Содержит как полуфабрикаты (с внутренними рецептами), так и упаковочный материал.
 
         :param ranges: Справочник единиц измерения (опционально)
         :param groups: Справочник групп номенклатуры (опционально)
         :param nomenclatures: Справочник номенклатуры (опционально)
         :return: Настроенный экземпляр recipe_model с упаковкой
         """
-        # Базовый рецепт пиццы
+        # Базовый рецепт пиццы (уже с привязанными внутренними рецептами полуфабрикатов)
         base_recipe = recipe_model.create_pizza_margarita(
             ranges=ranges,
             groups=groups,
@@ -555,6 +608,7 @@ class recipe_model(name_id):
         # Добавляем упаковку в состав (брутто: 150 г коробка, нетто: 0 г съедобной части)
         box_row = recipe_row_model.create(box_nom, 150.0, 0.0, piece, "Коробка 30 см (упаковка)")
 
+        # Копируем строки из базового рецепта и добавляем упаковку
         packaged_rows = [
             recipe_row_model.create(r.nomenclature, r.brutto, r.netto, r.range, r.name)
             for r in base_recipe.rows
@@ -574,148 +628,3 @@ class recipe_model(name_id):
         )
 
         return recipe
-
-    @staticmethod
-    def from_markdown(
-        markdown_text: str,
-        ranges: list = None,
-        groups: list = None,
-        nomenclatures: list = None
-    ) -> 'recipe_model':
-        """
-        Создаёт экземпляр recipe_model путем парсинга текста Markdown-спецификации.
-
-        :param markdown_text: Содержимое файла рецепта в формате Markdown
-        :param ranges: Доступные единицы измерения для привязки
-        :param groups: Доступные группы номенклатуры для привязки
-        :param nomenclatures: Доступная номенклатура для привязки
-        :return: Сформированный объект recipe_model
-        """
-        if not markdown_text or not markdown_text.strip():
-            raise arguments_exception("markdown_text", "Текст markdown не может быть пустым")
-
-        # Извлечение наименования
-        name_match = re.search(r"#\s*Рецепт:\s*([^\n\r]+)", markdown_text)
-        if not name_match:
-            name_match = re.search(r"#\s*([^\n\r]+)", markdown_text)
-        recipe_name = name_match.group(1).strip() if name_match else "Рецепт"
-        if len(recipe_name) > 50:
-            recipe_name = recipe_name[:50]
-
-        # Извлечение метаданных
-        cat_match = re.search(r"\*\*Категория:\*\*\s*([^\n\r]+)", markdown_text)
-        category = cat_match.group(1).strip() if cat_match else ""
-
-        time_match = re.search(r"\*\*Время приготовления:\*\*\s*(\d+)", markdown_text)
-        cooking_time = float(time_match.group(1)) if time_match else 0.0
-
-        out_match = re.search(r"\*\*Выход:\*\*\s*([^\n\r]+)", markdown_text)
-        output = out_match.group(1).strip() if out_match else ""
-
-        std_match = re.search(r"\*\*Стандарт:\*\*\s*([^\n\r]+)", markdown_text)
-        standard = std_match.group(1).strip() if std_match else ""
-
-        # Хелперы разрешения сущностей
-        def resolve_range(r_name: str) -> range_model:
-            cleaned = r_name.strip().lower()
-            mapping = {"г": "грамм", "мл": "миллилитр", "кг": "килограмм", "л": "литр", "шт": "штука"}
-            full_unit = mapping.get(cleaned, cleaned)
-            if ranges:
-                found = next((r for r in ranges if r.name.lower() in (cleaned, full_unit)), None)
-                if found: return found
-            if full_unit == "грамм": return range_model.create_gram()
-            if full_unit == "миллилитр": return range_model.create_milliliter()
-            if full_unit == "килограмм": return range_model.create_kilogramm()
-            if full_unit == "штука": return range_model.create_piece()
-            return range_model.create(full_unit)
-
-        def resolve_group(g_name: str) -> nomenclature_group_model:
-            if groups:
-                found = next((g for g in groups if g.name == g_name), None)
-                if found: return found
-            if g_name == "Полуфабрикаты": return nomenclature_group_model.create_semi_finished()
-            if g_name == "Сырьё": return nomenclature_group_model.create_raw()
-            if g_name == "Готовая продукция": return nomenclature_group_model.create_finished()
-            if g_name == "Упаковка": return nomenclature_group_model.create_packaging()
-            return nomenclature_group_model.create(g_name)
-
-        def resolve_nomenclature(raw_name: str, unit_name: str) -> nomenclature_model:
-            clean_name = re.sub(r"\(.*?\)", "", raw_name).strip()
-            if nomenclatures:
-                found = next((n for n in nomenclatures if n.name.lower() == clean_name.lower() or clean_name.lower() in n.name.lower()), None)
-                if found: return found
-
-            grp_name = "Полуфабрикаты" if "полуфабрикат" in raw_name.lower() else "Сырьё"
-            return nomenclature_model.create(
-                clean_name[:50],
-                raw_name,
-                resolve_group(grp_name),
-                resolve_range(unit_name)
-            )
-
-        # Парсинг таблицы состава: | Наименование | Единица | Брутто | Нетто |
-        rows = []
-        table_pattern = re.compile(r"\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*(\d+(?:\.\d+)?)\s*\|\s*(\d+(?:\.\d+)?)\s*\|")
-        for line in markdown_text.splitlines():
-            line_str = line.strip()
-            if "Наименование" in line_str or "---" in line_str:
-                continue
-            m = table_pattern.match(line_str)
-            if m:
-                raw_nom_name = m.group(1).strip()
-                unit_str = m.group(2).strip()
-                brutto_val = float(m.group(3))
-                netto_val = float(m.group(4))
-
-                nom = resolve_nomenclature(raw_nom_name, unit_str)
-                rng = resolve_range(unit_str)
-                row = recipe_row_model.create(
-                    nomenclature=nom,
-                    brutto=brutto_val,
-                    netto=netto_val,
-                    range=rng,
-                    name=raw_nom_name[:50]
-                )
-                rows.append(row)
-
-        # Парсинг шагов приготовления
-        steps = []
-        step_pattern = re.compile(r"###\s*(\d+)\.\s*([^\n\r]+)")
-        for m in step_pattern.finditer(markdown_text):
-            num = int(m.group(1))
-            st_name = m.group(2).strip()
-            steps.append(recipe_step_model.create(step_number=num, name=st_name))
-
-        return recipe_model.create(
-            name=recipe_name,
-            rows=rows,
-            steps=steps,
-            category=category,
-            output=output,
-            standard=standard,
-            cooking_time=cooking_time
-        )
-
-    @staticmethod
-    def from_file(
-        file_path: str,
-        ranges: list = None,
-        groups: list = None,
-        nomenclatures: list = None
-    ) -> 'recipe_model':
-        """
-        Загружает и парсит рецепт из Markdown-файла.
-
-        :param file_path: Путь к файлу с рецептом
-        :param ranges: Справочник единиц измерения
-        :param groups: Справочник групп
-        :param nomenclatures: Справочник номенклатуры
-        :return: Экземпляр recipe_model
-        """
-        if not os.path.exists(file_path):
-            raise arguments_exception("file_path", f"Файл не найден: {file_path}")
-
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        return recipe_model.from_markdown(content, ranges, groups, nomenclatures)

@@ -248,39 +248,22 @@ class storage_manager(abstract_manager):
 
     def _build_recipes(self) -> None:
         """
-        Создаёт технологические карты (рецепты) через фабричные методы recipe_model
-        согласно собственной спецификации (Docs/Recipe.md) и наполняет ими коллекцию.
-        Формирует рецепт, содержащий полуфабрикаты, а также рецепт с упаковкой.
+        Создаёт технологические карты (рецепты) через фабричные методы recipe_model.
+        Формирует рецепт с полуфабрикатами, а также рецепт с упаковкой.
         """
         ranges = self.get(self.range_key())
         groups = self.get(self.group_key())
         nomenclatures = self.get(self.nomenclature_key())
 
-        # Попытка инициализировать рецепт напрямую из Markdown файла Recipe.md
-        recipe_margarita = None
-        try:
-            recipe_file = FilePathResolver.resolve("Docs/Recipe.md", __file__)
-            recipe_margarita = recipe_model.from_file(
-                recipe_file,
-                ranges=ranges,
-                groups=groups,
-                nomenclatures=nomenclatures
-            )
-        except Exception:
-            # Резервный вызов фабричного метода при отсутствии файла
-            recipe_margarita = recipe_model.create_pizza_margarita(
-                ranges=ranges,
-                groups=groups,
-                nomenclatures=nomenclatures
-            )
-
-        if recipe_margarita is not None:
+        # Создаем рецепты строго через фабричные методы (хардкодом)
+        recipe_margarita = recipe_model.create_pizza_margarita(
+            ranges=ranges, groups=groups, nomenclatures=nomenclatures
+        )
+        if recipe_margarita:
             self.add(self.recipe_key(), recipe_margarita)
 
-        # Рецепт с упаковкой (для курьерской доставки)
         recipe_packaged = recipe_model.create_pizza_with_packaging(
-            ranges=ranges,
-            groups=groups,
-            nomenclatures=nomenclatures
+            ranges=ranges, groups=groups, nomenclatures=nomenclatures
         )
-        self.add(self.recipe_key(), recipe_packaged)
+        if recipe_packaged:
+            self.add(self.recipe_key(), recipe_packaged)

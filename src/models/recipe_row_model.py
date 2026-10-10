@@ -67,14 +67,10 @@ class recipe_row_model(name_id):
         """
         Устанавливает номенклатурную позицию. Ожидает экземпляр nomenclature_model.
         """
-        if not isinstance(value, nomenclature_model):
+        if value is not None and not isinstance(value, nomenclature_model):
             raise arguments_exception("nomenclature", "Параметр nomenclature должен быть экземпляром nomenclature_model")
 
         self.__nomenclature = value
-        if not self._name or self._name == "Строка рецепта":
-            self.name = value.name[:50]
-        if self.__range is None and getattr(value, "range", None) is not None:
-            self.__range = value.range
 
     @property
     def brutto(self) -> float:
