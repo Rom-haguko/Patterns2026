@@ -79,12 +79,51 @@ class range_model(name_id):
         return self.__base_range
 
     @staticmethod
-    def create_kilogramm():
+    def create(name: str = "", conversion_factor: float = 1, base_range=None) -> 'range_model':
         """
-        Фабричный метод для создания связки 'грамм -> килограмм'
-        """
-        gramm = range_model(name="грамм", conversion_factor=1)
-        
-        result = range_model(name="килограмм", conversion_factor=1000, base_range=gramm)
+        Универсальный фабричный метод для создания единицы измерения.
 
+        :param name: Наименование единицы
+        :param conversion_factor: Коэффициент пересчёта относительно базовой
+        :param base_range: Базовая единица измерения
+        :return: Экземпляр range_model
+        """
+        return range_model(name=name, conversion_factor=conversion_factor, base_range=base_range)
+
+    @staticmethod
+    def create_gram() -> 'range_model':
+        """
+        Фабричный метод создания единицы измерения 'грамм'.
+        """
+        return range_model(name="грамм", conversion_factor=1)
+
+    @staticmethod
+    def create_kilogramm() -> 'range_model':
+        """
+        Фабричный метод для создания связки 'грамм -> килограмм'.
+        """
+        gramm = range_model.create_gram()
+        result = range_model(name="килограмм", conversion_factor=1000, base_range=gramm)
         return result
+
+    @staticmethod
+    def create_milliliter() -> 'range_model':
+        """
+        Фабричный метод создания единицы измерения 'миллилитр'.
+        """
+        return range_model(name="миллилитр", conversion_factor=1)
+
+    @staticmethod
+    def create_liter(base_range=None) -> 'range_model':
+        """
+        Фабричный метод создания связки 'миллилитр -> литр'.
+        """
+        base = base_range if base_range is not None else range_model.create_milliliter()
+        return range_model(name="литр", conversion_factor=1000, base_range=base)
+
+    @staticmethod
+    def create_piece() -> 'range_model':
+        """
+        Фабричный метод создания единицы измерения 'штука'.
+        """
+        return range_model(name="штука", conversion_factor=1)

@@ -84,3 +84,35 @@ class nomenclature_model(name_id):
             raise arguments_exception("range", "Параметр range должен быть экземпляром класса range_model")
 
         self.__range = value
+
+    @staticmethod
+    def create(name: str = "", full_name: str = "", group=None, range=None) -> 'nomenclature_model':
+        """
+        Фабричный метод создания номенклатурной позиции.
+
+        :param name: Краткое наименование (до 50 символов)
+        :param full_name: Полное наименование (до 255 символов)
+        :param group: Категория номенклатуры (nomenclature_group_model)
+        :param range: Единица измерения (range_model)
+        :return: Экземпляр nomenclature_model
+        """
+        return nomenclature_model(name=name, full_name=full_name, group=group, range=range)
+
+    @property
+    def recipe(self):
+        """
+        Технологическая карта (рецепт), по которой производится данная номенклатура.
+        Реализует концепцию "Блюдо в блюде" (для полуфабрикатов).
+        """
+        return self.__recipe
+
+    @recipe.setter
+    def recipe(self, value) -> None:
+        """
+        Устанавливает рецепт для данной номенклатуры.
+        """
+        if value is not None:
+            # Проверяем класс по имени, чтобы избежать проблем с циклическими импортами
+            if type(value).__name__ != "recipe_model":
+                raise arguments_exception("recipe", "Рецепт должен быть экземпляром recipe_model")
+        self.__recipe = value

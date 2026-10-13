@@ -23,6 +23,7 @@ classDiagram
         +nomenclature_key() str$
         +group_key() str$
         +storage_key() str$
+        +recipe_key() str$
         +get(key: str) list
         +add(key: str, item: object) bool
         +convert() bool
@@ -30,6 +31,7 @@ classDiagram
         -_build_groups() None
         -_build_nomenclature() None
         -_build_storages() None
+        -_build_recipes() None
     }
 
     class range_model {
@@ -79,6 +81,7 @@ classDiagram
     storage_manager "1" --> "*" nomenclature_group_model : хранит
     storage_manager "1" --> "*" nomenclature_model : хранит
     storage_manager "1" --> "*" storage_model : хранит
+    storage_manager "1" --> "*" recipe_model : хранит
 
     nomenclature_model --> nomenclature_group_model : group
     nomenclature_model --> range_model : range
