@@ -1,8 +1,8 @@
-from src.core.abstract_model import name_id
+from src.core.abstract_model import abstract_model
 from src.core.exception import arguments_exception
 
 
-class storage_model(name_id):
+class storage_model(abstract_model):
     """
     Модель склада или места хранения.
     Используется для учета помещений, где хранятся сырье, готовая продукция или материалы.
@@ -46,3 +46,12 @@ class storage_model(name_id):
         :return: Экземпляр storage_model
         """
         return storage_model(name=name, address=address)
+
+    def to_report_data(self) -> tuple[str, list[str], list[list]]:
+        """
+        Формирует табличное представление склада для отчетов.
+        """
+        title = self.name
+        headers = ["Код", "Наименование", "Адрес"]
+        rows = [[self.id, self.name, self.address]]
+        return title, headers, rows

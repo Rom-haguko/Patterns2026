@@ -23,5 +23,6 @@
   },
   "database": {
     "path": "database.db"
-  }
+  },
+  "response_format": "Markdown"
 }

@@ -12,7 +12,7 @@
 classDiagram
     direction TB
 
-    class name_id {
+    class abstract_model {
         <<abstract>>
         -_id: str
         -_name: str
@@ -126,12 +126,12 @@ classDiagram
         -_build_recipes() None
     }
 
-    name_id <|-- recipe_model : наследует
-    name_id <|-- recipe_row_model : наследует
-    name_id <|-- recipe_step_model : наследует
-    name_id <|-- nomenclature_model : наследует
-    name_id <|-- nomenclature_group_model : наследует
-    name_id <|-- range_model : наследует
+    abstract_model <|-- recipe_model : наследует
+    abstract_model <|-- recipe_row_model : наследует
+    abstract_model <|-- recipe_step_model : наследует
+    abstract_model <|-- nomenclature_model : наследует
+    abstract_model <|-- nomenclature_group_model : наследует
+    abstract_model <|-- range_model : наследует
 
     recipe_model "1" *-- "*" recipe_row_model : содержит строки (композиция)
     recipe_model "1" *-- "*" recipe_step_model : содержит шаги (композиция)

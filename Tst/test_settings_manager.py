@@ -3,6 +3,8 @@ from src.logics.settings_manager import settings_manager
 from src.core.validator import operation_exception
 from src.models.settings_model import settings_model
 from src.models.organization_model import organization_model
+from src.dtos.report_type_enum import report_type_enum
+from src.core.exception import arguments_exception
 
 
 # ─────────────────────────── Вспомогательная функция ───────────────────────────
@@ -114,8 +116,8 @@ def test_equals_settings_manager_setting():
     instance2 = settings_manager()
 
     # Действие
-    setting1 = instance1.setting
-    setting2 = instance2.setting
+    setting1 = instance1.settings
+    setting2 = instance2.settings
 
     # Проверка
     assert setting1 == setting2
@@ -229,3 +231,59 @@ def test_convert_with_manual_data():
 
     # Восстановление оригинальных данных
     setattr(manager, attr, original_data)
+
+
+def test_convert_response_format_from_settings_file():
+    """
+    <summary>
+    Проверка загрузки формата ответа из файла настроек settings.json.
+    </summary>
+    """
+    manager = _get_loaded_manager()
+    assert manager.settings.response_format == report_type_enum.MARKDOWN
+
+
+def test_convert_with_custom_response_format():
+    """
+    <summary>
+    Проверка загрузки формата ответа при явном указании в данных.
+    </summary>
+    """
+    manager = settings_manager()
+    attr = f"_{settings_manager.__name__}__data"
+    original_data = getattr(manager, attr, {})
+
+    test_data = {
+        "response_format": "CSV"
+    }
+    setattr(manager, attr, test_data)
+
+    manager.convert()
+    assert manager.settings.response_format == report_type_enum.CSV
+
+    setattr(manager, attr, original_data)
+
+
+def test_settings_model_response_format_property():
+    """
+    <summary>
+    Проверка установки и чтения формата ответа через модель настроек.
+    </summary>
+    """
+    model = settings_model()
+    model.response_format = report_type_enum.XML
+    assert model.response_format == report_type_enum.XML
+
+    model.response_format = "HTML"
+    assert model.response_format == report_type_enum.HTML
+
+
+def test_settings_model_response_format_invalid_raises():
+    """
+    <summary>
+    Проверка генерации исключения при некорректном формате ответа.
+    </summary>
+    """
+    model = settings_model()
+    with pytest.raises(arguments_exception):
+        model.response_format = "НЕВЕРНЫЙ_ФОРМАТ"

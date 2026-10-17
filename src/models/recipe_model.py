@@ -1,6 +1,6 @@
 import os
 import re
-from src.core.abstract_model import name_id
+from src.core.abstract_model import abstract_model
 from src.core.exception import arguments_exception
 from src.models.recipe_row_model import recipe_row_model
 from src.models.recipe_step_model import recipe_step_model
@@ -9,7 +9,7 @@ from src.models.nomenclature_group_model import nomenclature_group_model
 from src.models.range_model import range_model
 
 
-class recipe_model(name_id):
+class recipe_model(abstract_model):
     """
     Модель технологической карты (рецепта).
     Хранит состав блюда (список строк-ингредиентов), технологические этапы приготовления,
@@ -114,47 +114,17 @@ class recipe_model(name_id):
         return round(get_net(self), 4)
     
 
-    @property
-    def brutto(self) -> float:
-        """
-        Псевдоним (алиас) для свойства gross_weight.
-        """
-        return self.gross_weight
 
-    @property
-    def gross(self) -> float:
-        """
-        Псевдоним (алиас) для свойства gross_weight.
-        """
-        return self.gross_weight
 
-    @property
-    def weight_brutto(self) -> float:
-        """
-        Псевдоним (алиас) для свойства gross_weight.
-        """
-        return self.gross_weight
 
-    @property
-    def netto(self) -> float:
-        """
-        Псевдоним (алиас) для свойства net_weight.
-        """
-        return self.net_weight
 
-    @property
-    def net(self) -> float:
-        """
-        Псевдоним (алиас) для свойства net_weight.
-        """
-        return self.net_weight
 
-    @property
-    def weight_netto(self) -> float:
-        """
-        Псевдоним (алиас) для свойства net_weight.
-        """
-        return self.net_weight
+
+
+
+
+
+
 
     # ─────────────────────────── Управление ингредиентами ─────────────────────────
 
@@ -165,12 +135,7 @@ class recipe_model(name_id):
         """
         return self.__rows
 
-    @property
-    def ingredients(self) -> list:
-        """
-        Псевдоним (алиас) для свойства rows.
-        """
-        return self.__rows
+
 
     def add_row(self, row: recipe_row_model) -> bool:
         """
@@ -188,12 +153,6 @@ class recipe_model(name_id):
         self.__rows.append(row)
         return True
 
-    def add_ingredient(self, ingredient: recipe_row_model) -> bool:
-        """
-        Псевдоним (алиас) для метода add_row.
-        """
-        return self.add_row(ingredient)
-
     def remove_row(self, row: recipe_row_model) -> bool:
         """
         Исключает строку (ингредиент) из рецепта.
@@ -205,24 +164,6 @@ class recipe_model(name_id):
             self.__rows.remove(row)
             return True
         return False
-
-    def remove_ingredient(self, ingredient: recipe_row_model) -> bool:
-        """
-        Псевдоним (алиас) для метода remove_row.
-        """
-        return self.remove_row(ingredient)
-
-    def delete_row(self, row: recipe_row_model) -> bool:
-        """
-        Псевдоним (алиас) для метода remove_row.
-        """
-        return self.remove_row(row)
-
-    def delete_ingredient(self, ingredient: recipe_row_model) -> bool:
-        """
-        Псевдоним (алиас) для метода remove_row.
-        """
-        return self.remove_row(ingredient)
 
     # ─────────────────────────── Управление шагами приготовления ───────────────────
 
@@ -628,3 +569,12 @@ class recipe_model(name_id):
         )
 
         return recipe
+
+    def to_report_data(self) -> tuple[str, list[str], list[list]]:
+        """
+        Формирует табличное представление технологической карты (рецепта) для отчетов.
+        """
+        title = f"Рецепт: {self.name}"
+        headers = ["Наименование", "Брутто", "Нетто"]
+        rows = [[item.nomenclature.name, item.brutto, item.netto] for item in self.rows]
+        return title, headers, rows

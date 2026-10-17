@@ -1,10 +1,10 @@
-from src.core.abstract_model import name_id
+from src.core.abstract_model import abstract_model
 from src.core.exception import arguments_exception
 from src.models.nomenclature_model import nomenclature_model
 from src.models.range_model import range_model
 
 
-class recipe_row_model(name_id):
+class recipe_row_model(abstract_model):
     """
     Модель строки технологической карты (ингредиента рецепта).
     Хранит информацию о номенклатуре, единице измерения, весе брутто и весе нетто.
@@ -92,26 +92,8 @@ class recipe_row_model(name_id):
 
         self.__brutto = float(value)
 
-    @property
-    def gross(self) -> float:
-        """
-        Псевдоним (алиас) для свойства brutto.
-        """
-        return self.__brutto
 
-    @gross.setter
-    def gross(self, value: float) -> None:
-        """
-        Сеттер-алиас для свойства brutto.
-        """
-        self.brutto = value
 
-    @property
-    def weight_brutto(self) -> float:
-        """
-        Псевдоним (алиас) для свойства brutto.
-        """
-        return self.__brutto
 
     @property
     def netto(self) -> float:
@@ -133,26 +115,8 @@ class recipe_row_model(name_id):
 
         self.__netto = float(value)
 
-    @property
-    def net(self) -> float:
-        """
-        Псевдоним (алиас) для свойства netto.
-        """
-        return self.__netto
 
-    @net.setter
-    def net(self, value: float) -> None:
-        """
-        Сеттер-алиас для свойства netto.
-        """
-        self.netto = value
 
-    @property
-    def weight_netto(self) -> float:
-        """
-        Псевдоним (алиас) для свойства netto.
-        """
-        return self.__netto
 
     @property
     def range(self) -> range_model:
@@ -171,12 +135,7 @@ class recipe_row_model(name_id):
 
         self.__range = value
 
-    @property
-    def unit(self) -> range_model:
-        """
-        Псевдоним (алиас) для свойства range.
-        """
-        return self.__range
+    
 
     # ─────────────────────────── Фабричные методы ─────────────────────────────────
 
@@ -205,6 +164,3 @@ class recipe_row_model(name_id):
             range=range,
             name=name
         )
-
-
-ingredient_model = recipe_row_model

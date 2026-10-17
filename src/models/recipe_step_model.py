@@ -1,8 +1,8 @@
-from src.core.abstract_model import name_id
+from src.core.abstract_model import abstract_model
 from src.core.exception import arguments_exception
 
 
-class recipe_step_model(name_id):
+class recipe_step_model(abstract_model):
     """
     Модель этапа (шага) приготовления в технологической карте.
     Содержит номер шага, краткое наименование этапа и подробное описание действий.
