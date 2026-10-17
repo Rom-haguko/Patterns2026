@@ -6,17 +6,10 @@ from src.dtos.report_type_enum import report_type_enum
 Абстрактная фабрика отчетов
 """
 class abstract_report_factory(ABC):
-    
+
     """
     Подобрать и создать инстанс нужного отчета
     """
     @abstractmethod
-    def create(self, report_type: report_type_enum) -> abstract_report:
-        pass
-
-    """
-    Создать инстанс нужного отчета на основе настроек по умолчанию
-    """
-    @abstractmethod
-    def create_default(self) -> abstract_report:
+    def create(self, report_type: report_type_enum = None) -> abstract_report:
         pass

@@ -1,8 +1,4 @@
 from src.core.abstract_report import abstract_report
-from src.models.recipe_model import recipe_model
-from src.models.nomenclature_model import nomenclature_model
-from src.models.range_model import range_model
-from src.core.validator import argument_exception
 from src.dtos.report_result_dto import report_result_dto
 
 """
@@ -10,61 +6,82 @@ from src.dtos.report_result_dto import report_result_dto
 """
 class xml_report(abstract_report):
 
+    # Словарь сопоставления наименований заголовков с XML тегами
+    __tag_map = {
+        "Наименование": "name",
+        "Брутто": "brutto",
+        "Нетто": "netto",
+        "Код": "id",
+        "Полное наименование": "full_name",
+        "Группа": "group",
+        "Единица измерения": "range",
+        "Коэффициент": "conversion_factor",
+        "Базовая единица": "base_range",
+        "Адрес": "address",
+    }
+
+    @property
+    def mimetype(self) -> str:
+        """
+        MIME-тип для формата XML
+        """
+        return "application/xml"
+
+    @property
+    def is_binary(self) -> bool:
+        """
+        Флаг формирования бинарных данных для скачивания файла
+        """
+        return False
+
+    @property
+    def file_extension(self) -> str:
+        """
+        Расширение файла XML
+        """
+        return "xml"
+
     """
     Формирование отчета в формате XML (структурированный текст)
     """
     def build(self, source) -> report_result_dto:
-        if not isinstance(source, (recipe_model, nomenclature_model, range_model)):
-            raise argument_exception("Некорректный тип источника данных для XML отчета")
+        title, headers, rows = self.prepare_data(source)
+        root_tag = getattr(source, "__class__", type(source)).__name__.replace("_model", "")
+        if isinstance(source, list):
+            root_tag = "report"
+            item_tag = source[0].__class__.__name__.replace("_model", "") if source else "item"
+        else:
+            item_tag = "row" if hasattr(source, "rows") else root_tag
 
-        if isinstance(source, recipe_model):
-            rows_xml = []
-            for item in source.rows:
-                row_str = (
-                    "    <row>\n"
-                    f"      <nomenclature>{item.nomenclature.name}</nomenclature>\n"
-                    f"      <brutto>{item.brutto}</brutto>\n"
-                    f"      <netto>{item.netto}</netto>\n"
-                    "    </row>"
-                )
-                rows_xml.append(row_str)
+        rows_xml = []
+        for row in rows:
+            cols_xml = []
+            for header, val in zip(headers, row):
+                if item_tag == "row" and header == "Наименование":
+                    tag = "nomenclature"
+                else:
+                    tag = self.__tag_map.get(header, header.lower().replace(" ", "_"))
+                cols_xml.append(f"      <{tag}>{val}</{tag}>")
+            cols_str = "\n".join(cols_xml)
+            if item_tag == root_tag:
+                # Одиночная плоская сущность
+                rows_xml.append(f"<{root_tag}>\n{cols_str}\n</{root_tag}>")
+            else:
+                rows_xml.append(f"    <{item_tag}>\n{cols_str}\n    </{item_tag}>")
+
+        if item_tag == root_tag and len(rows_xml) == 1:
+            content = '<?xml version="1.0" encoding="utf-8"?>\n' + rows_xml[0]
+        else:
             rows_block = "\n".join(rows_xml)
             content = (
                 '<?xml version="1.0" encoding="utf-8"?>\n'
-                "<recipe>\n"
-                f"  <id>{source.id}</id>\n"
-                f"  <name>{source.name}</name>\n"
+                f"<{root_tag}>\n"
+                f"  <id>{getattr(source, 'id', '')}</id>\n"
+                f"  <name>{getattr(source, 'name', title)}</name>\n"
                 "  <rows>\n"
                 f"{rows_block}\n"
                 "  </rows>\n"
-                "</recipe>"
+                f"</{root_tag}>"
             )
 
-        elif isinstance(source, nomenclature_model):
-            group_name = source.group.name if source.group else ""
-            range_name = source.range.name if source.range else ""
-            content = (
-                '<?xml version="1.0" encoding="utf-8"?>\n'
-                "<nomenclature>\n"
-                f"  <id>{source.id}</id>\n"
-                f"  <name>{source.name}</name>\n"
-                f"  <full_name>{source.full_name}</full_name>\n"
-                f"  <group>{group_name}</group>\n"
-                f"  <range>{range_name}</range>\n"
-                "</nomenclature>"
-            )
-
-        elif isinstance(source, range_model):
-            base_name = source.base_range.name if source.base_range else ""
-            content = (
-                '<?xml version="1.0" encoding="utf-8"?>\n'
-                "<range>\n"
-                f"  <id>{source.id}</id>\n"
-                f"  <name>{source.name}</name>\n"
-                f"  <conversion_factor>{source.conversion_factor}</conversion_factor>\n"
-                f"  <base_range>{base_name}</base_range>\n"
-                "</range>"
-            )
-
-        result = report_result_dto(text=content)
-        return result
+        return report_result_dto(text=content)

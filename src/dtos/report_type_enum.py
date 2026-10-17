@@ -67,7 +67,3 @@ class report_type_enum(Enum):
         Хеш для использования в словарях
         """
         return hash(self.value)
-
-
-# Псевдоним для совместимости с регистром
-report_type_enum.Markdown = report_type_enum.MARKDOWN

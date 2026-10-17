@@ -1,61 +1,10 @@
-import io
 import flask
 import connexion
-from src.logics.settings_manager import settings_manager
 from src.logics.storage_manager import storage_manager
 from src.logics.report_factory import report_factory
 from src.dtos.report_type_enum import report_type_enum
-from src.dtos.report_result_dto import report_result_dto
 
 api = connexion.FlaskApp(__name__, specification_dir="./")
-
-
-def _find_entity(entity_type: str, entity_code: str):
-    """
-    Поиск сущности в хранилище по ее типу и коду (id или наименованию).
-    """
-    manager = storage_manager()
-    type_normalized = entity_type.strip().lower()
-
-    if type_normalized in ("номенклатура", "nomenclature", "nomenclature_model"):
-        collection = manager.get(storage_manager.nomenclature_key())
-    elif type_normalized in ("единица измерения", "единица_измерения", "range", "range_model", "единица"):
-        collection = manager.get(storage_manager.range_key())
-    elif type_normalized in ("рецепт", "recipe", "recipe_model"):
-        collection = manager.get(storage_manager.recipe_key())
-    else:
-        return None, "type_not_found"
-
-    item = next((e for e in collection if str(e.id) == entity_code or str(e.name).strip() == entity_code.strip()), None)
-    if item is None:
-        return None, "entity_not_found"
-    return item, None
-
-
-def _build_http_response(result: report_result_dto, format_type: report_type_enum):
-    """
-    Формирование HTTP ответа в зависимости от формата отчета.
-    Для Markdown и CSV формируются бинарные данные для скачивания файла,
-    для остальных форматов — структурированный текст.
-    """
-    if format_type in (report_type_enum.CSV, report_type_enum.MARKDOWN):
-        raw_bytes = bytes(result.binary) if result.binary else result.text.encode("utf-8")
-        extension = "csv" if format_type == report_type_enum.CSV else "md"
-        mimetype = "text/csv" if format_type == report_type_enum.CSV else "text/markdown"
-        return flask.send_file(
-            io.BytesIO(raw_bytes),
-            mimetype=mimetype,
-            as_attachment=True,
-            download_name=f"report.{extension}"
-        )
-
-    mimetype = "text/plain"
-    if format_type == report_type_enum.XML:
-        mimetype = "application/xml"
-    elif format_type == report_type_enum.HTML:
-        mimetype = "text/html"
-
-    return flask.Response(result.text, mimetype=mimetype)
 
 
 @api.route("/api/get_report", methods=["GET"])
@@ -73,7 +22,7 @@ def get_report():
     factory = report_factory()
     report = factory.create(report_type_enum.TXT)
     result = report.build(recipe)
-    return result.text
+    return report.to_http_response(result)
 
 
 @api.route("/api/report/<format_name>/<entity_type>/<entity_code>", methods=["GET"])
@@ -81,10 +30,12 @@ def get_report_by_format(format_name: str, entity_type: str, entity_code: str):
     """
     Формирование отчета в указанном формате для указанного типа сущности и кода.
     """
-    entity, error = _find_entity(entity_type, entity_code)
-    if error == "type_not_found":
+    manager = storage_manager()
+    if manager.get_by_type(entity_type) is None:
         return {"error": f"Неизвестный тип сущности '{entity_type}'"}, 400
-    if error == "entity_not_found":
+
+    entity = manager.get_by_type_and_code(entity_type, entity_code)
+    if entity is None:
         return {"error": f"Сущность с кодом '{entity_code}' не найдена"}, 404
 
     try:
@@ -95,15 +46,9 @@ def get_report_by_format(format_name: str, entity_type: str, entity_code: str):
     factory = report_factory()
     report = factory.create(report_format)
     result = report.build(entity)
-    return _build_http_response(result, report_format)
+    return report.to_http_response(result)
 
 
-@api.route("/api/report/<entity_type>/<entity_code>/<format_name>", methods=["GET"])
-def get_report_by_entity_and_format(entity_type: str, entity_code: str, format_name: str):
-    """
-    Псевдоним маршрута формирования отчета с порядком (тип, код, формат).
-    """
-    return get_report_by_format(format_name=format_name, entity_type=entity_type, entity_code=entity_code)
 
 
 @api.route("/api/report/default/<entity_type>/<entity_code>", methods=["GET"])
@@ -112,16 +57,18 @@ def get_report_default(entity_type: str, entity_code: str):
     """
     Формирование отчета для указанного типа сущности и кода с использованием create_default.
     """
-    entity, error = _find_entity(entity_type, entity_code)
-    if error == "type_not_found":
+    manager = storage_manager()
+    if manager.get_by_type(entity_type) is None:
         return {"error": f"Неизвестный тип сущности '{entity_type}'"}, 400
-    if error == "entity_not_found":
+
+    entity = manager.get_by_type_and_code(entity_type, entity_code)
+    if entity is None:
         return {"error": f"Сущность с кодом '{entity_code}' не найдена"}, 404
 
     factory = report_factory()
     report = factory.create_default()
     result = report.build(entity)
-    return _build_http_response(result, factory.settings.response_format)
+    return report.to_http_response(result)
 
 
 @api.route("/api/report", methods=["GET"])

@@ -55,19 +55,25 @@ class report_factory(abstract_report_factory):
         validator.validate(value, settings_model)
         self.__settings = value
 
-    def create(self, report_type: report_type_enum) -> abstract_report:
+    def create(self, report_type: report_type_enum = None) -> abstract_report:
         """
-        Создание инстанса отчета по переданному типу
+        Создание инстанса отчета по переданному типу.
+        Если тип не указан, создается отчет по умолчанию на основе настроек.
         """
         actual_type = report_type
-        if isinstance(report_type, str):
+        if actual_type is None:
+            if self.__settings is None:
+                raise arguments_exception(field="settings", message="Настройки не инициализированы в фабрике")
+            actual_type = self.__settings.response_format
+
+        if isinstance(actual_type, str):
             try:
-                actual_type = report_type_enum.from_string(report_type)
+                actual_type = report_type_enum.from_string(actual_type)
             except Exception:
-                raise arguments_exception(field="report_type", message=f"Указанный тип отчета {report_type}")
+                raise arguments_exception(field="report_type", message=f"Указанный тип отчета {actual_type}")
 
         if actual_type not in self.__mapping.keys():
-            raise arguments_exception(field="report_type", message=f"Указанный тип отчета {report_type}")
+            raise arguments_exception(field="report_type", message=f"Указанный тип отчета {actual_type}")
 
         report_class = self.__mapping[actual_type]
         return report_class()
@@ -76,7 +82,4 @@ class report_factory(abstract_report_factory):
         """
         Создание инстанса отчета на основе настроек приложения
         """
-        if self.__settings is None:
-            raise arguments_exception(field="settings", message="Настройки не инициализированы в фабрике")
-
-        return self.create(self.__settings.response_format)
+        return self.create()

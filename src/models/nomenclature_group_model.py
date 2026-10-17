@@ -1,7 +1,7 @@
-from src.core.abstract_model import name_id
+from src.core.abstract_model import abstract_model
 
 
-class nomenclature_group_model(name_id):
+class nomenclature_group_model(abstract_model):
     """
     Модель категории (группы) номенклатуры.
     Служит для классификации и объединения товаров или материалов 

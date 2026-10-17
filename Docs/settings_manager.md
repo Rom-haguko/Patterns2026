@@ -54,7 +54,7 @@ classDiagram
         +corr_account: str
     }
 
-    class name_id {
+    class abstract_model {
         <<abstract>>
         -_id: str
         -_name: str
@@ -64,8 +64,8 @@ classDiagram
     }
 
     abstract_manager <|-- settings_manager : наследует
-    name_id <|-- settings_model : наследует
-    name_id <|-- organization_model : наследует
+    abstract_model <|-- settings_model : наследует
+    abstract_model <|-- organization_model : наследует
     settings_manager "1" --> "1" settings_model : создаёт / хранит
     settings_model "1" --> "0..1" organization_model : содержит
 ```

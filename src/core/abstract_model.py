@@ -3,7 +3,7 @@ from uuid import uuid4
 from src.core.exception import arguments_exception
 
 
-class name_id(ABC):
+class abstract_model(ABC):
     """
     Абстрактный базовый класс для имени и id объекта.
     """
@@ -17,10 +17,10 @@ class name_id(ABC):
 
     def __eq__(self, other: object) -> bool:
         """
-        Сущности считаются равными, если они принадлежат иерархии name_id
+        Сущности считаются равными, если они принадлежат иерархии abstract_model
         и имеют одинаковый идентификатор (id).
         """
-        if not isinstance(other, name_id):
+        if not isinstance(other, abstract_model):
             return False
         return self.id == other.id
 
@@ -62,5 +62,12 @@ class name_id(ABC):
 
         self._name = value_clean
 
-
-abstract_model = name_id
+    def to_report_data(self) -> tuple[str, list[str], list[list]]:
+        """
+        Формирует табличное представление сущности для отчетов.
+        По умолчанию извлекает идентификатор и наименование.
+        """
+        title = self.name or self.__class__.__name__
+        headers = ["Код", "Наименование"]
+        rows = [[self.id, self.name]]
+        return title, headers, rows
