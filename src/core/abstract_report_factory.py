@@ -11,5 +11,12 @@ class abstract_report_factory(ABC):
     Подобрать и создать инстанс нужного отчета
     """
     @abstractmethod
-    def create(report_type: report_type_enum) -> abstract_report:
+    def create(self, report_type: report_type_enum) -> abstract_report:
+        pass
+
+    """
+    Создать инстанс нужного отчета на основе настроек по умолчанию
+    """
+    @abstractmethod
+    def create_default(self) -> abstract_report:
         pass

@@ -33,9 +33,11 @@ classDiagram
         -__company: organization_model
         -__boss_name: str
         -__account_name: str
+        -__response_format: report_type_enum
         +company: organization_model
         +boss_name: str
         +account_name: str
+        +response_format: report_type_enum
         +__eq__(other) bool
     }
 

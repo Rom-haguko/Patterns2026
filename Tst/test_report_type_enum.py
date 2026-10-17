@@ -44,3 +44,44 @@ def test_enum_txt_is_singleton():
 
     # Проверка
     assert txt1 is txt2
+
+
+def test_enum_has_all_required_formats():
+    """
+    <summary>
+    Проверка наличия всех форматов отчетов: CSV, MARKDOWN, XML, TXT, HTML.
+    </summary>
+    """
+    assert hasattr(report_type_enum, "TXT")
+    assert hasattr(report_type_enum, "CSV")
+    assert hasattr(report_type_enum, "MARKDOWN")
+    assert hasattr(report_type_enum, "XML")
+    assert hasattr(report_type_enum, "HTML")
+
+
+def test_enum_from_string_successful_conversion():
+    """
+    <summary>
+    Проверка метода from_string для строковых названий форматов.
+    </summary>
+    """
+    assert report_type_enum.from_string("csv") == report_type_enum.CSV
+    assert report_type_enum.from_string("CSV") == report_type_enum.CSV
+    assert report_type_enum.from_string("markdown") == report_type_enum.MARKDOWN
+    assert report_type_enum.from_string("Markdown") == report_type_enum.MARKDOWN
+    assert report_type_enum.from_string("md") == report_type_enum.MARKDOWN
+    assert report_type_enum.from_string("xml") == report_type_enum.XML
+    assert report_type_enum.from_string("txt") == report_type_enum.TXT
+    assert report_type_enum.from_string("html") == report_type_enum.HTML
+
+
+def test_enum_equality_with_string():
+    """
+    <summary>
+    Проверка прямого сравнения элемента перечисления со строкой.
+    </summary>
+    """
+    assert report_type_enum.CSV == "CSV"
+    assert report_type_enum.CSV == "csv"
+    assert report_type_enum.MARKDOWN == "Markdown"
+    assert report_type_enum.XML == "XML"

@@ -34,6 +34,6 @@ class report_result_dto(entity_model):
 
     @binary.setter
     def binary(self, value: list) -> None:
-        if len(value) == 0:
-            self.__text = ""
-            self.__binary = value
+        validator.validate(value, list)
+        self.__text = ""
+        self.__binary = value

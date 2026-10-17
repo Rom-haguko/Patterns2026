@@ -1,4 +1,5 @@
 from enum import Enum
+from src.core.exception import arguments_exception
 
 """
 Типы отчетов
@@ -9,42 +10,64 @@ class report_type_enum(Enum):
     """
     TXT = 1
 
-from src.core.entity_model import entity_model
-from src.core.validator import validator
-
-"""
-Модель для хранения результата формирования отчета
-"""
-class report_result_dto(entity_model):
-    __text: str = ""
-    __binary: list
-
-    def __init__(self, text: str = "", binary: list = []):
-        self.__text = text if len(binary) == 0 else ""
-        self.__binary = binary if len(text.strip()) == 0 else []
+    """
+    Формат CSV
+    """
+    CSV = 2
 
     """
-    Текстовый результат
+    Формат Markdown
     """
-    @property
-    def text(self) -> str:
-        return self.__text
+    MARKDOWN = 3
 
     """
-    Бинарный результат
+    Формат XML
     """
+    XML = 4
 
-    @property
-    def binary(self) -> list:
-        return self.__binary
+    """
+    Формат HTML
+    """
+    HTML = 5
 
-    @text.setter
-    def text(self, value: str) -> None:
-        validator.validate(value, str)
-        self.__text = value
-        self.__binary = []
+    @classmethod
+    def from_string(cls, value: str) -> "report_type_enum":
+        """
+        Преобразует строковое представление в элемент перечисления
+        """
+        if not value or not isinstance(value, str):
+            raise arguments_exception(field="report_type", message="Тип отчета должен быть непустой строкой")
 
-    def binary(self, value: list) -> None:
-        if len(value) == 0:
-            self.__text = ""
-            self.__binary = value
+        val_clean = value.strip().upper()
+        mapping = {
+            "TXT": cls.TXT,
+            "CSV": cls.CSV,
+            "MARKDOWN": cls.MARKDOWN,
+            "MD": cls.MARKDOWN,
+            "XML": cls.XML,
+            "HTML": cls.HTML,
+        }
+
+        if val_clean not in mapping:
+            raise arguments_exception(field="report_type", message=f"Неподдерживаемый формат отчета: {value}")
+
+        return mapping[val_clean]
+
+    def __eq__(self, other):
+        """
+        Сравнение перечисления с другим объектом или строкой
+        """
+        if isinstance(other, str):
+            clean = other.strip().upper()
+            return self.name == clean or (self.name == "MARKDOWN" and clean in ("MARKDOWN", "MD"))
+        return super().__eq__(other)
+
+    def __hash__(self):
+        """
+        Хеш для использования в словарях
+        """
+        return hash(self.value)
+
+
+# Псевдоним для совместимости с регистром
+report_type_enum.Markdown = report_type_enum.MARKDOWN
