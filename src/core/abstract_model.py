@@ -1,6 +1,7 @@
 from abc import ABC
 from uuid import uuid4
 from src.core.exception import arguments_exception
+from src.dtos.report_data_dto import report_data_dto
 
 
 class abstract_model(ABC):
@@ -54,7 +55,7 @@ class abstract_model(ABC):
         """
         if not value or not isinstance(value, str) or not value.strip():
             raise arguments_exception(field="name", message="Имя объекта не может быть пустым")
-        
+
         value_clean = value.strip()
 
         if len(value_clean) > 50:
@@ -62,12 +63,37 @@ class abstract_model(ABC):
 
         self._name = value_clean
 
-    def to_report_data(self) -> tuple[str, list[str], list[list]]:
+    # Методы отчётности (DDD)
+
+    def get_report_header(self) -> str:
         """
-        Формирует табличное представление сущности для отчетов.
-        По умолчанию извлекает идентификатор и наименование.
+        Формирует заголовок отчета для данной сущности.
         """
-        title = self.name or self.__class__.__name__
+        return self.name or self.__class__.__name__
+
+    def get_report_table(self) -> tuple[list[str], list[list]]:
+        """
+        Формирует табличную часть отчета: заголовки столбцов и строки данных.
+        Возвращает кортеж (headers, rows).
+        """
         headers = ["Код", "Наименование"]
         rows = [[self.id, self.name]]
-        return title, headers, rows
+        return headers, rows
+
+    def get_report_footer(self) -> str:
+        """
+        Формирует подвал отчета для данной сущности.
+        """
+        return ""
+
+    def to_report_data(self) -> report_data_dto:
+        """
+        Собирает DTO отчета из трех частей: заголовок, таблица, подвал.
+        """
+        headers, rows = self.get_report_table()
+        return report_data_dto(
+            title=self.get_report_header(),
+            headers=headers,
+            rows=rows,
+            footer=self.get_report_footer()
+        )

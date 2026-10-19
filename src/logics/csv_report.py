@@ -31,11 +31,9 @@ class csv_report(abstract_report):
     Формирование отчета в формате CSV (бинарные данные)
     """
     def build(self, source) -> report_result_dto:
-        _, headers, rows = self.prepare_data(source)
-        header_line = ";".join(headers)
-        data_lines = [";".join(str(val) for val in row) for row in rows]
+        data = self.prepare_data(source)
+        header_line = ";".join(data.headers)
+        data_lines = [";".join(str(val) for val in row) for row in data.rows]
         content = f"{header_line}\n" + "\n".join(data_lines) + "\n"
-
         binary_data = list(content.encode("utf-8"))
-        result = report_result_dto(binary=binary_data)
-        return result
+        return report_result_dto(binary=binary_data)

@@ -115,12 +115,23 @@ class range_model(abstract_model):
         """
         return range_model(name="штука", conversion_factor=1)
 
-    def to_report_data(self) -> tuple[str, list[str], list[list]]:
+    def get_report_header(self) -> str:
         """
-        Формирует табличное представление единицы измерения для отчетов.
+        Заголовок отчета единицы измерения.
         """
-        title = f"Единица измерения: {self.name}"
+        return f"Единица измерения: {self.name}"
+
+    def get_report_table(self) -> tuple[list[str], list[list]]:
+        """
+        Табличная часть отчета: заголовки столбцов и строки данных.
+        """
         headers = ["Код", "Наименование", "Коэффициент", "Базовая единица"]
         base_name = self.base_range.name if self.base_range else ""
         rows = [[self.id, self.name, self.conversion_factor, base_name]]
-        return title, headers, rows
+        return headers, rows
+
+    def get_report_footer(self) -> str:
+        """
+        Подвал отчета единицы измерения.
+        """
+        return ""

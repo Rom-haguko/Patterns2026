@@ -45,7 +45,7 @@ class xml_report(abstract_report):
     Формирование отчета в формате XML (структурированный текст)
     """
     def build(self, source) -> report_result_dto:
-        title, headers, rows = self.prepare_data(source)
+        data = self.prepare_data(source)
         root_tag = getattr(source, "__class__", type(source)).__name__.replace("_model", "")
         if isinstance(source, list):
             root_tag = "report"
@@ -54,9 +54,9 @@ class xml_report(abstract_report):
             item_tag = "row" if hasattr(source, "rows") else root_tag
 
         rows_xml = []
-        for row in rows:
+        for row in data.rows:
             cols_xml = []
-            for header, val in zip(headers, row):
+            for header, val in zip(data.headers, row):
                 if item_tag == "row" and header == "Наименование":
                     tag = "nomenclature"
                 else:
@@ -64,7 +64,6 @@ class xml_report(abstract_report):
                 cols_xml.append(f"      <{tag}>{val}</{tag}>")
             cols_str = "\n".join(cols_xml)
             if item_tag == root_tag:
-                # Одиночная плоская сущность
                 rows_xml.append(f"<{root_tag}>\n{cols_str}\n</{root_tag}>")
             else:
                 rows_xml.append(f"    <{item_tag}>\n{cols_str}\n    </{item_tag}>")
@@ -77,7 +76,7 @@ class xml_report(abstract_report):
                 '<?xml version="1.0" encoding="utf-8"?>\n'
                 f"<{root_tag}>\n"
                 f"  <id>{getattr(source, 'id', '')}</id>\n"
-                f"  <name>{getattr(source, 'name', title)}</name>\n"
+                f"  <name>{getattr(source, 'name', data.title)}</name>\n"
                 "  <rows>\n"
                 f"{rows_block}\n"
                 "  </rows>\n"

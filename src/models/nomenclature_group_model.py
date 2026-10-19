@@ -54,3 +54,9 @@ class nomenclature_group_model(abstract_model):
         Фабричный метод создания группы 'Упаковка'.
         """
         return nomenclature_group_model(name="Упаковка")
+
+    def get_report_header(self) -> str:
+        """
+        Заголовок отчета группы номенклатуры.
+        """
+        return f"Группа номенклатуры: {self.name}"

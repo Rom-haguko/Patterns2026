@@ -31,22 +31,29 @@ class html_report(abstract_report):
     Формирование отчета в формате HTML (структурированный текст)
     """
     def build(self, source) -> report_result_dto:
-        title, headers, rows = self.prepare_data(source)
-        th_tags = "".join(f"\n        <th>{h}</th>" for h in headers)
+        data = self.prepare_data(source)
+        th_tags = "".join(f"\n        <th>{h}</th>" for h in data.headers)
         tr_tags = []
-        for row in rows:
+        for row in data.rows:
             td_tags = "".join(f"\n        <td>{val}</td>" for val in row)
             tr_tags.append(f"      <tr>{td_tags}\n      </tr>")
         rows_html = "\n".join(tr_tags)
+        footer_html = ""
+        if data.footer:
+            footer_html = (
+                "\n    <tfoot>\n"
+                f"      <tr><td colspan=\"{len(data.headers)}\">{data.footer}</td></tr>\n"
+                "    </tfoot>"
+            )
         content = (
             "<!DOCTYPE html>\n"
             "<html>\n"
             "<head>\n"
             '  <meta charset="utf-8">\n'
-            f"  <title>{title}</title>\n"
+            f"  <title>{data.title}</title>\n"
             "</head>\n"
             "<body>\n"
-            f"  <h1>{getattr(source, 'name', title)}</h1>\n"
+            f"  <h1>{data.title}</h1>\n"
             '  <table border="1">\n'
             "    <thead>\n"
             f"      <tr>{th_tags}\n"
@@ -54,7 +61,8 @@ class html_report(abstract_report):
             "    </thead>\n"
             "    <tbody>\n"
             f"{rows_html}\n"
-            "    </tbody>\n"
+            "    </tbody>"
+            f"{footer_html}\n"
             "  </table>\n"
             "</body>\n"
             "</html>"

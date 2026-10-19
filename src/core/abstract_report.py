@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from src.core.abstract_model import abstract_model
 from src.core.validator import argument_exception
 from src.dtos.report_result_dto import report_result_dto
+from src.dtos.report_data_dto import report_data_dto
 
 """
 Абстрактный класс для формирования отчета
@@ -34,33 +35,47 @@ class abstract_report(ABC):
         """
         pass
 
-    def prepare_data(self, source) -> tuple[str, list[str], list[list]]:
+    def prepare_data(self, source) -> report_data_dto:
         """
-        Полиморфное извлечение табличных данных из источника.
+        Полиморфное извлечение данных отчета в виде DTO.
+        Поддерживает одиночную сущность или список сущностей.
         """
         if source is None:
             raise argument_exception("Источник данных не может быть пустым")
 
         if isinstance(source, list):
-            if len(source) == 0:
-                return "Отчет", [], []
-            first = source[0]
-            if not isinstance(first, abstract_model):
-                raise argument_exception("Элементы списка должны быть экземплярами abstract_model")
-            _, headers, _ = first.to_report_data()
-            all_rows = []
-            for item in source:
-                if not isinstance(item, abstract_model):
-                    raise argument_exception("Все элементы списка должны быть экземплярами abstract_model")
-                _, _, item_rows = item.to_report_data()
-                all_rows.extend(item_rows)
-            title = f"Список {first.__class__.__name__}"
-            return title, headers, all_rows
+            return self.prepare_collection(source)
 
         if not isinstance(source, abstract_model):
             raise argument_exception("Источник данных должен быть экземпляром abstract_model")
 
         return source.to_report_data()
+
+    def prepare_collection(self, source: list) -> report_data_dto:
+        """
+        Формирует DTO для коллекции сущностей: общий заголовок, объединенная таблица, итоговый подвал.
+        """
+        if len(source) == 0:
+            return report_data_dto(title="Пустой отчет")
+
+        first = source[0]
+        if not isinstance(first, abstract_model):
+            raise argument_exception("Элементы списка должны быть экземплярами abstract_model")
+
+        headers, _ = first.get_report_table()
+        all_rows = []
+        for item in source:
+            if not isinstance(item, abstract_model):
+                raise argument_exception("Все элементы списка должны быть экземплярами abstract_model")
+            _, item_rows = item.get_report_table()
+            all_rows.extend(item_rows)
+
+        return report_data_dto(
+            title=f"Список {first.__class__.__name__}",
+            headers=headers,
+            rows=all_rows,
+            footer=f"Всего записей: {len(all_rows)}"
+        )
 
     def to_http_response(self, result: report_result_dto):
         """
@@ -76,6 +91,9 @@ class abstract_report(ABC):
             )
         return flask.Response(result.text, mimetype=self.mimetype)
 
+    """
+    Сформировать отчет
+    """
     @abstractmethod
     def build(self, source: abstract_model) -> report_result_dto:
         pass

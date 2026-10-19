@@ -570,11 +570,22 @@ class recipe_model(abstract_model):
 
         return recipe
 
-    def to_report_data(self) -> tuple[str, list[str], list[list]]:
+    def get_report_header(self) -> str:
         """
-        Формирует табличное представление технологической карты (рецепта) для отчетов.
+        Заголовок отчета технологической карты.
         """
-        title = f"Рецепт: {self.name}"
+        return f"Рецепт: {self.name}"
+
+    def get_report_table(self) -> tuple[list[str], list[list]]:
+        """
+        Табличная часть отчета: заголовки столбцов и строки ингредиентов.
+        """
         headers = ["Наименование", "Брутто", "Нетто"]
         rows = [[item.nomenclature.name, item.brutto, item.netto] for item in self.rows]
-        return title, headers, rows
+        return headers, rows
+
+    def get_report_footer(self) -> str:
+        """
+        Подвал отчета с итоговыми весами Брутто и Нетто.
+        """
+        return f"Итого Брутто: {self.gross_weight}, Итого Нетто: {self.net_weight}"

@@ -32,7 +32,7 @@ def test_success_build_html_report_for_recipe():
     text = result.text
     assert "<!DOCTYPE html>" in text
     assert "<html>" in text
-    assert "<h1>Пицца с базиликом</h1>" in text
+    assert "<h1>Рецепт: Пицца с базиликом</h1>" in text
     assert "<th>Наименование</th>" in text
     assert "<td>Базилик</td>" in text
     assert "<td>10.0</td>" in text
@@ -56,7 +56,7 @@ def test_success_build_html_report_for_nomenclature():
 
     assert isinstance(result, report_result_dto)
     text = result.text
-    assert "<h1>Перец</h1>" in text
+    assert "<h1>Номенклатура: Перец</h1>" in text
     assert f"<td>{nom.id}</td>" in text
     assert "<td>Перец черный молотый</td>" in text
     assert "<td>Сырьё</td>" in text
@@ -76,7 +76,7 @@ def test_success_build_html_report_for_range():
 
     assert isinstance(result, report_result_dto)
     text = result.text
-    assert "<h1>грамм</h1>" in text
+    assert "<h1>Единица измерения: грамм</h1>" in text
     assert f"<td>{gram.id}</td>" in text
     assert "<td>1</td>" in text
 

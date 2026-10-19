@@ -197,11 +197,22 @@ class organization_model(abstract_model):
             corr_account=corr_account
         )
 
-    def to_report_data(self) -> tuple[str, list[str], list[list]]:
+    def get_report_header(self) -> str:
         """
-        Формирует табличное представление организации для отчетов.
+        Заголовок отчета организации.
         """
-        title = self.name
+        return self.name
+
+    def get_report_table(self) -> tuple[list[str], list[list]]:
+        """
+        Табличная часть отчета: заголовки столбцов и строки данных.
+        """
         headers = ["Код", "Наименование", "ИНН", "БИК", "Счет", "Форма собственности", "Корр. счет"]
         rows = [[self.id, self.name, self.inn, self.bik, self.account, self.ownership_form, self.corr_account]]
-        return title, headers, rows
+        return headers, rows
+
+    def get_report_footer(self) -> str:
+        """
+        Подвал отчета организации.
+        """
+        return ""

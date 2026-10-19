@@ -101,8 +101,7 @@ def test_api_get_report_html_range_structured_text(client):
     assert "text/html" in response.headers.get("Content-Type", "")
     data = response.get_data(as_text=True)
     assert "<!DOCTYPE html>" in data
-    assert f"<h1>{unit.name}</h1>" in data
-
+    assert f"<h1>{unit.get_report_header()}</h1>" in data
 
 def test_api_get_report_default_endpoint(client):
     """

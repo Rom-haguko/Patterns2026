@@ -31,16 +31,16 @@ class markdown_report(abstract_report):
     Формирование отчета в формате Markdown (бинарные данные)
     """
     def build(self, source) -> report_result_dto:
-        title, headers, rows = self.prepare_data(source)
+        data = self.prepare_data(source)
         lines = []
-        if title:
-            lines.append(f"# {title}\n")
-        lines.append("| " + " | ".join(headers) + " |")
-        lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
-        for row in rows:
+        if data.title:
+            lines.append(f"# {data.title}\n")
+        lines.append("| " + " | ".join(data.headers) + " |")
+        lines.append("| " + " | ".join(["---"] * len(data.headers)) + " |")
+        for row in data.rows:
             lines.append("| " + " | ".join(str(val) for val in row) + " |")
+        if data.footer:
+            lines.append(f"\n{data.footer}")
         content = "\n".join(lines) + "\n"
-
         binary_data = list(content.encode("utf-8"))
-        result = report_result_dto(binary=binary_data)
-        return result
+        return report_result_dto(binary=binary_data)

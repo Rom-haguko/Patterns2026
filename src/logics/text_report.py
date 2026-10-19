@@ -31,13 +31,11 @@ class text_report(abstract_report):
     Переопределенный метод формирования отчета
     """
     def build(self, source) -> report_result_dto:
-        _, headers, rows = self.prepare_data(source)
-        lines = []
-        lines.append(" | ".join(headers) + " ")
-        for row in rows:
+        data = self.prepare_data(source)
+        lines = [data.title, " | ".join(data.headers)]
+        for row in data.rows:
             lines.append(" | ".join(str(val) for val in row))
+        if data.footer:
+            lines.append(data.footer)
         content = "\n".join(lines) + "\n"
-
-        result = report_result_dto()
-        result.text = content
-        return result
+        return report_result_dto(text=content)

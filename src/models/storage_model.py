@@ -47,11 +47,22 @@ class storage_model(abstract_model):
         """
         return storage_model(name=name, address=address)
 
-    def to_report_data(self) -> tuple[str, list[str], list[list]]:
+    def get_report_header(self) -> str:
         """
-        Формирует табличное представление склада для отчетов.
+        Заголовок отчета склада.
         """
-        title = self.name
+        return self.name
+
+    def get_report_table(self) -> tuple[list[str], list[list]]:
+        """
+        Табличная часть отчета: заголовки столбцов и строки данных.
+        """
         headers = ["Код", "Наименование", "Адрес"]
         rows = [[self.id, self.name, self.address]]
-        return title, headers, rows
+        return headers, rows
+
+    def get_report_footer(self) -> str:
+        """
+        Подвал отчета склада.
+        """
+        return ""
