@@ -117,24 +117,3 @@ class nomenclature_model(abstract_model):
                 raise arguments_exception("recipe", "Рецепт должен быть экземпляром recipe_model")
         self.__recipe = value
 
-    def get_report_header(self) -> str:
-        """
-        Заголовок отчета номенклатурной позиции.
-        """
-        return f"Номенклатура: {self.name}"
-
-    def get_report_table(self) -> tuple[list[str], list[list]]:
-        """
-        Табличная часть отчета: заголовки столбцов и строки данных.
-        """
-        headers = ["Код", "Наименование", "Полное наименование", "Группа", "Единица измерения"]
-        group_name = self.group.name if self.group else ""
-        range_name = self.range.name if self.range else ""
-        rows = [[self.id, self.name, self.full_name, group_name, range_name]]
-        return headers, rows
-
-    def get_report_footer(self) -> str:
-        """
-        Подвал отчета номенклатурной позиции.
-        """
-        return ""

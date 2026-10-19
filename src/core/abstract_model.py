@@ -63,37 +63,5 @@ class abstract_model(ABC):
 
         self._name = value_clean
 
-    # Методы отчётности (DDD)
 
-    def get_report_header(self) -> str:
-        """
-        Формирует заголовок отчета для данной сущности.
-        """
-        return self.name or self.__class__.__name__
-
-    def get_report_table(self) -> tuple[list[str], list[list]]:
-        """
-        Формирует табличную часть отчета: заголовки столбцов и строки данных.
-        Возвращает кортеж (headers, rows).
-        """
-        headers = ["Код", "Наименование"]
-        rows = [[self.id, self.name]]
-        return headers, rows
-
-    def get_report_footer(self) -> str:
-        """
-        Формирует подвал отчета для данной сущности.
-        """
-        return ""
-
-    def to_report_data(self) -> report_data_dto:
-        """
-        Собирает DTO отчета из трех частей: заголовок, таблица, подвал.
-        """
-        headers, rows = self.get_report_table()
-        return report_data_dto(
-            title=self.get_report_header(),
-            headers=headers,
-            rows=rows,
-            footer=self.get_report_footer()
-        )
+   

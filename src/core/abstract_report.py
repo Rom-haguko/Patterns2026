@@ -5,6 +5,7 @@ from src.core.abstract_model import abstract_model
 from src.core.validator import argument_exception
 from src.dtos.report_result_dto import report_result_dto
 from src.dtos.report_data_dto import report_data_dto
+from src.logics.report_data_mapper import report_data_mapper
 
 """
 Абстрактный класс для формирования отчета
@@ -37,7 +38,8 @@ class abstract_report(ABC):
 
     def prepare_data(self, source) -> report_data_dto:
         """
-        Полиморфное извлечение данных отчета в виде DTO.
+        Полиморфное извлечение данных отчета в виде DTO через внешний маппер.
+        Доменные модели остаются чистыми (DDD): они ничего не знают об отчетах.
         Поддерживает одиночную сущность или список сущностей.
         """
         if source is None:
@@ -49,33 +51,21 @@ class abstract_report(ABC):
         if not isinstance(source, abstract_model):
             raise argument_exception("Источник данных должен быть экземпляром abstract_model")
 
-        return source.to_report_data()
+        return report_data_mapper.to_dto(source)
 
     def prepare_collection(self, source: list) -> report_data_dto:
         """
-        Формирует DTO для коллекции сущностей: общий заголовок, объединенная таблица, итоговый подвал.
+        Формирует DTO для коллекции сущностей через внешний маппер:
+        общий заголовок, объединенная таблица, итоговый подвал.
         """
         if len(source) == 0:
             return report_data_dto(title="Пустой отчет")
 
-        first = source[0]
-        if not isinstance(first, abstract_model):
-            raise argument_exception("Элементы списка должны быть экземплярами abstract_model")
-
-        headers, _ = first.get_report_table()
-        all_rows = []
         for item in source:
             if not isinstance(item, abstract_model):
                 raise argument_exception("Все элементы списка должны быть экземплярами abstract_model")
-            _, item_rows = item.get_report_table()
-            all_rows.extend(item_rows)
 
-        return report_data_dto(
-            title=f"Список {first.__class__.__name__}",
-            headers=headers,
-            rows=all_rows,
-            footer=f"Всего записей: {len(all_rows)}"
-        )
+        return report_data_mapper.to_collection_dto(source)
 
     def to_http_response(self, result: report_result_dto):
         """

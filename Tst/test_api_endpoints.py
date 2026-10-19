@@ -1,7 +1,7 @@
 import pytest
 from main import api
 from src.logics.storage_manager import storage_manager
-from src.dtos.report_type_enum import report_type_enum
+from src.logics.report_data_mapper import report_data_mapper
 
 
 @pytest.fixture
@@ -101,7 +101,9 @@ def test_api_get_report_html_range_structured_text(client):
     assert "text/html" in response.headers.get("Content-Type", "")
     data = response.get_data(as_text=True)
     assert "<!DOCTYPE html>" in data
-    assert f"<h1>{unit.get_report_header()}</h1>" in data
+    # ИСПРАВЛЕНО: используем маппер вместо метода модели
+    assert f"<h1>{report_data_mapper.to_dto(unit).title}</h1>" in data
+
 
 def test_api_get_report_default_endpoint(client):
     """
