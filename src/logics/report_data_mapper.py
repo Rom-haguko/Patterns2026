@@ -10,17 +10,14 @@ from src.models.nomenclature_group_model import nomenclature_group_model
 class report_data_mapper:
     """
     Маппер для преобразования доменных моделей в DTO отчетов.
-    Реализует разделение ответственности по DDD: доменные модели
-    содержат только бизнес-логику, адаптация к отчетам вынесена отдельно.
-    
-    Использует Registry pattern: регистрация мапперов по типу доменной модели.
+    Выносит логику представления данных из доменных моделей.
     """
     _mappers = {}
 
     @classmethod
     def register(cls, model_class, mapper_func) -> None:
         """
-        Регистрирует функцию-маппер для указанного типа доменной модели.
+        Регистрирует функцию-маппер для типа доменной модели.
         """
         cls._mappers[model_class] = mapper_func
 
@@ -59,21 +56,48 @@ class report_data_mapper:
             footer=f"Всего записей: {len(all_rows)}"
         )
 
+    # ─────────── Методы формирования частей отчета ───────────
+
     @staticmethod
-    def _default_mapper(entity) -> report_data_dto:
+    def _build_title(entity) -> str:
         """
-        Маппер по умолчанию: используется, если для типа сущности не зарегистрирован специализированный.
+        Формирует заголовок отчета для сущности.
+        """
+        return getattr(entity, "name", "") or entity.__class__.__name__
+
+    @staticmethod
+    def _build_table(entity) -> tuple[list[str], list[list]]:
+        """
+        Формирует табличную часть отчета (заголовки и строки).
         """
         headers = ["Код", "Наименование"]
-        rows = [[entity.id, entity.name]]
+        rows = [[getattr(entity, "id", ""), getattr(entity, "name", "")]]
+        return headers, rows
+
+    @staticmethod
+    def _build_footer(entity) -> str:
+        """
+        Формирует подвал отчета для сущности.
+        """
+        return ""
+
+    @classmethod
+    def _default_mapper(cls, entity) -> report_data_dto:
+        """
+        Маппер по умолчанию: использует отдельные методы заголовка, таблицы и подвала.
+        """
+        title = cls._build_title(entity)
+        headers, rows = cls._build_table(entity)
+        footer = cls._build_footer(entity)
         return report_data_dto(
-            title=entity.name or entity.__class__.__name__,
+            title=title,
             headers=headers,
-            rows=rows
+            rows=rows,
+            footer=footer
         )
 
 
-# ─────────────────────────── Регистрация специализированных мапперов ─────────────
+# ─────────── Регистрация специализированных мапперов ───────────
 
 def _map_nomenclature(entity: nomenclature_model) -> report_data_dto:
     headers = ["Код", "Наименование", "Полное наименование", "Группа", "Единица измерения"]

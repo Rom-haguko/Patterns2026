@@ -31,11 +31,8 @@ classDiagram
         -__cooking_time: float
         -__description: str
         +gross_weight: float
-        +brutto: float
         +net_weight: float
-        +netto: float
         +rows: list
-        +ingredients: list
         +steps: list
         +target_nomenclature: nomenclature_model
         +category: str
@@ -48,9 +45,7 @@ classDiagram
         +has_packaging: bool
         +packaging_items: list
         +add_row(row: recipe_row_model) bool
-        +add_ingredient(ingredient: recipe_row_model) bool
         +remove_row(row: recipe_row_model) bool
-        +remove_ingredient(ingredient: recipe_row_model) bool
         +add_step(step: recipe_step_model) bool
         +remove_step(step: recipe_step_model) bool
         +create(...) recipe_model$
