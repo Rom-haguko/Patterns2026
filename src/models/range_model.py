@@ -1,8 +1,8 @@
-from src.core.abstract_model import name_id
+from src.core.abstract_model import abstract_model
 from src.core.exception import arguments_exception
 
 
-class range_model(name_id):
+class range_model(abstract_model):
     """
     Модель единицы измерения.
     Хранит информацию о базовой единице измерения и коэффициенте пересчёта относительно неё.
@@ -46,12 +46,6 @@ class range_model(name_id):
 
         self.__conversion_factor = value
 
-    @property
-    def coefficient(self):
-        """
-        Псевдоним (алиас) для свойства conversion_factor.
-        """
-        return self.__conversion_factor
 
     @property
     def base_range(self):
@@ -70,13 +64,6 @@ class range_model(name_id):
             raise arguments_exception("base_range", "Базовая единица должна являться объектом range_model")
 
         self.__base_range = value
-
-    @property
-    def base(self):
-        """
-        Псевдоним (алиас) для свойства base_range.
-        """
-        return self.__base_range
 
     @staticmethod
     def create(name: str = "", conversion_factor: float = 1, base_range=None) -> 'range_model':
@@ -127,3 +114,4 @@ class range_model(name_id):
         Фабричный метод создания единицы измерения 'штука'.
         """
         return range_model(name="штука", conversion_factor=1)
+

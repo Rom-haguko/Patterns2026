@@ -1,8 +1,8 @@
-from src.core.abstract_model import name_id
+from src.core.abstract_model import abstract_model
 from src.core.exception import arguments_exception
 
 
-class organization_model(name_id):
+class organization_model(abstract_model):
     """
     Сущность компании / юридического лица.
     Хранит ключевые учетные реквизиты: ИНН, БИК, номер расчетного счета и форму собственности.
@@ -97,20 +97,6 @@ class organization_model(name_id):
         self.__bik = value
 
     @property
-    def bic(self) -> str:
-        """
-        Псевдоним (алиас) для свойства bik. Используется для обратной совместимости.
-        """
-        return self.__bik
-
-    @bic.setter
-    def bic(self, value):
-        """
-        Сеттер-алиас для bik.
-        """
-        self.bik = value
-
-    @property
     def account(self) -> str:
         """
         Возвращает расчетный счет.
@@ -159,20 +145,6 @@ class organization_model(name_id):
             raise arguments_exception("ownership_form", "Длина формы собственности не может превышать 5 символов")
 
         self.__ownership_form = value
-
-    @property
-    def ownership(self) -> str:
-        """
-        Псевдоним (алиас) для свойства ownership_form. Используется для обратной совместимости.
-        """
-        return self.__ownership_form
-
-    @ownership.setter
-    def ownership(self, value):
-        """
-        Сеттер-алиас для ownership_form.
-        """
-        self.ownership_form = value
 
     @property
     def corr_account(self) -> str:
@@ -224,3 +196,4 @@ class organization_model(name_id):
             ownership_form=ownership_form,
             corr_account=corr_account
         )
+

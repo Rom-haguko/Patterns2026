@@ -1,10 +1,10 @@
-from src.core.abstract_model import name_id
+from src.core.abstract_model import abstract_model
 from src.core.exception import arguments_exception
 from src.models.nomenclature_group_model import nomenclature_group_model
 from src.models.range_model import range_model
 
 
-class nomenclature_model(name_id):
+class nomenclature_model(abstract_model):
     """
     Модель номенклатурной позиции.
     Содержит краткое и полное наименование учетной единицы, 
@@ -116,3 +116,4 @@ class nomenclature_model(name_id):
             if type(value).__name__ != "recipe_model":
                 raise arguments_exception("recipe", "Рецепт должен быть экземпляром recipe_model")
         self.__recipe = value
+

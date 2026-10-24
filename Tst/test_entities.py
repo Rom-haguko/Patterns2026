@@ -1,12 +1,12 @@
 import pytest
-from src.core.abstract_model import name_id
+from src.core.abstract_model import abstract_model
 from src.core.exception import arguments_exception
 
 
-class test_entity(name_id):
+class test_entity(abstract_model):
     """
     <summary>
-    Вспомогательный тестовый класс для проверки базовой функциональности абстрактного класса name_id.
+    Вспомогательный тестовый класс для проверки базовой функциональности абстрактного класса abstract_model.
     </summary>
     """
     def __init__(self, name: str = None):

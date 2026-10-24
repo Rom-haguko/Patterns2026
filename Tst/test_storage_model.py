@@ -57,7 +57,7 @@ def test_storage_model_non_string_address_raises_exception():
 def test_storage_model_empty_name_raises_exception():
     """
     <summary>
-    Проверка валидации пустого имени склада (наследуется от name_id).
+    Проверка валидации пустого имени склада (наследуется от abstract_model).
     </summary>
     """
     # Подготовка

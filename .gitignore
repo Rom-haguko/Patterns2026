@@ -189,4 +189,5 @@ cython_debug/
 *.vsix
 
 *.ini
+*.DS_Store
 

@@ -36,19 +36,16 @@ class storage_manager(abstract_manager):
         Инициализация состояния менеджера и первичных данных.
         Благодаря флагу _initialized реальная настройка происходит только при первом запуске.
         """
-        # Если уже инициализирован, просто выходим (защита от повторного сброса данных)
         if getattr(self, "_initialized", False):
             return
 
         self.__data = {}
-        # Инициализация пустых списков под каждую доменную сущность
         self.__data[self.range_key()] = []
         self.__data[self.nomenclature_key()] = []
         self.__data[self.group_key()] = []
         self.__data[self.storage_key()] = []
         self.__data[self.recipe_key()] = []
         
-        # Первый старт: заполнение первичными данными через фабричные методы
         self.convert()
         self._initialized = True
 
@@ -58,8 +55,6 @@ class storage_manager(abstract_manager):
         Два экземпляра равны, если оба являются storage_manager (Singleton).
         """
         return isinstance(other, storage_manager)
-
-    # ──────────────────────────────── Ключи коллекций ──────────────────────────────
 
     @staticmethod
     def range_key() -> str:
@@ -96,16 +91,12 @@ class storage_manager(abstract_manager):
         """
         return "recipe_model"
 
-    # ──────────────────────────────── Свойства ─────────────────────────────────────
-
     @property
     def data(self) -> dict:
         """
         Полный словарь кешированных коллекций доменных сущностей.
         """
         return self.__data
-
-    # ──────────────────────────────── Методы ───────────────────────────────────────
 
     def get(self, key: str) -> list:
         """
@@ -118,6 +109,51 @@ class storage_manager(abstract_manager):
         if key not in self.__data:
             self.__data[key] = []
         return self.__data[key]
+
+    def get_by_type(self, entity_type: str) -> list:
+        """
+        Возвращает коллекцию сущностей по названию типа сущности (номенклатура, рецепт и т.д.).
+        Инкапсулирует маппинг типов в менеджере хранилища согласно принципам SOLID.
+        """
+        if not entity_type or not isinstance(entity_type, str):
+            return None
+
+        normalized = entity_type.strip().lower()
+        type_mapping = {
+            "номенклатура": self.nomenclature_key(),
+            "nomenclature": self.nomenclature_key(),
+            "nomenclature_model": self.nomenclature_key(),
+            "единица измерения": self.range_key(),
+            "единица_измерения": self.range_key(),
+            "единица": self.range_key(),
+            "range": self.range_key(),
+            "range_model": self.range_key(),
+            "рецепт": self.recipe_key(),
+            "recipe": self.recipe_key(),
+            "recipe_model": self.recipe_key(),
+            "склад": self.storage_key(),
+            "storage": self.storage_key(),
+            "storage_model": self.storage_key(),
+            "группа": self.group_key(),
+            "group": self.group_key(),
+            "nomenclature_group_model": self.group_key(),
+        }
+
+        key = type_mapping.get(normalized)
+        if not key:
+            return None
+        return self.get(key)
+
+    def get_by_type_and_code(self, entity_type: str, code: str) -> object:
+        """
+        Поиск сущности в хранилище по ее типу и коду (id или наименованию).
+        """
+        collection = self.get_by_type(entity_type)
+        if collection is None:
+            return None
+
+        code_str = str(code).strip()
+        return next((item for item in collection if str(item.id) == code_str or str(item.name).strip() == code_str), None)
 
     def add(self, key: str, item: object) -> bool:
         """
@@ -133,7 +169,6 @@ class storage_manager(abstract_manager):
             return False
         collection = self.get(key)
         if item in collection:
-            # Объект уже присутствует — дубликат не добавляем
             return False
         collection.append(item)
         return True
@@ -154,15 +189,13 @@ class storage_manager(abstract_manager):
         self._build_recipes()
         return True
 
-    # ──────────────────────── Вспомогательные методы первого старта ───────────────
-
     def _build_ranges(self) -> None:
         """
         Создаёт базовые единицы измерения через фабричные методы range_model
         и наполняет ими коллекцию.
         """
         kilogram = range_model.create_kilogramm()
-        gram = kilogram.base
+        gram = kilogram.base_range
         milliliter = range_model.create_milliliter()
         liter = range_model.create_liter(milliliter)
         piece = range_model.create_piece()
@@ -192,7 +225,6 @@ class storage_manager(abstract_manager):
         ranges = self.get(self.range_key())
         groups = self.get(self.group_key())
 
-        # Вспомогательные функции поиска по имени
         def find_range(name: str) -> range_model:
             return next((r for r in ranges if r.name == name), None)
 
@@ -219,7 +251,6 @@ class storage_manager(abstract_manager):
             nomenclature_model.create("Соус томатный", "Соус томатный базовый, полуфабрикат 200 г", semi_group, gram),
             nomenclature_model.create("Коробка под пиццу 30 см", "Картонная коробка 300х300х40 мм", pack_group, piece),
             nomenclature_model.create("Пакет бумажный", "Пакет бумажный крафт 20х30 см", pack_group, piece),
-            # Позиции, необходимые для рецепта Пицца Маргарита
             nomenclature_model.create("Сыр Моцарелла", "Сыр Моцарелла классический для пиццы", raw_group, gram),
             nomenclature_model.create("Масло оливковое", "Масло оливковое Extra Virgin", raw_group, milliliter),
             nomenclature_model.create("Базилик свежий", "Базилик свежий зелёный листья", raw_group, gram),
@@ -255,7 +286,6 @@ class storage_manager(abstract_manager):
         groups = self.get(self.group_key())
         nomenclatures = self.get(self.nomenclature_key())
 
-        # Создаем рецепты строго через фабричные методы (хардкодом)
         recipe_margarita = recipe_model.create_pizza_margarita(
             ranges=ranges, groups=groups, nomenclatures=nomenclatures
         )

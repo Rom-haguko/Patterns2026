@@ -62,7 +62,7 @@ classDiagram
         +address: str
     }
 
-    class name_id {
+    class abstract_model {
         <<abstract>>
         -_id: str
         -_name: str
@@ -72,10 +72,10 @@ classDiagram
     }
 
     abstract_manager <|-- storage_manager : наследует
-    name_id <|-- range_model : наследует
-    name_id <|-- nomenclature_group_model : наследует
-    name_id <|-- nomenclature_model : наследует
-    name_id <|-- storage_model : наследует
+    abstract_model <|-- range_model : наследует
+    abstract_model <|-- nomenclature_group_model : наследует
+    abstract_model <|-- nomenclature_model : наследует
+    abstract_model <|-- storage_model : наследует
 
     storage_manager "1" --> "*" range_model : хранит
     storage_manager "1" --> "*" nomenclature_group_model : хранит

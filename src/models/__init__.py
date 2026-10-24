@@ -9,7 +9,7 @@ from src.models.nomenclature_model import nomenclature_model
 from src.models.organization_model import organization_model
 from src.models.range_model import range_model
 from src.models.storage_model import storage_model
-from src.models.recipe_row_model import recipe_row_model, ingredient_model
+from src.models.recipe_row_model import recipe_row_model
 from src.models.recipe_step_model import recipe_step_model
 from src.models.recipe_model import recipe_model
 

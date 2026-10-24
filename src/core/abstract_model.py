@@ -1,9 +1,10 @@
 from abc import ABC
 from uuid import uuid4
 from src.core.exception import arguments_exception
+from src.dtos.report_data_dto import report_data_dto
 
 
-class name_id(ABC):
+class abstract_model(ABC):
     """
     Абстрактный базовый класс для имени и id объекта.
     """
@@ -17,10 +18,10 @@ class name_id(ABC):
 
     def __eq__(self, other: object) -> bool:
         """
-        Сущности считаются равными, если они принадлежат иерархии name_id
+        Сущности считаются равными, если они принадлежат иерархии abstract_model
         и имеют одинаковый идентификатор (id).
         """
-        if not isinstance(other, name_id):
+        if not isinstance(other, abstract_model):
             return False
         return self.id == other.id
 
@@ -54,7 +55,7 @@ class name_id(ABC):
         """
         if not value or not isinstance(value, str) or not value.strip():
             raise arguments_exception(field="name", message="Имя объекта не может быть пустым")
-        
+
         value_clean = value.strip()
 
         if len(value_clean) > 50:
@@ -63,4 +64,4 @@ class name_id(ABC):
         self._name = value_clean
 
 
-abstract_model = name_id
+   

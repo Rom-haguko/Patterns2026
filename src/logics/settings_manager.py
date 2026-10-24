@@ -38,13 +38,6 @@ class settings_manager(abstract_manager):
         return self.__settings
 
     @property
-    def setting(self) -> settings_model:
-        """
-        Псевдоним (алиас) для свойства settings.
-        """
-        return self.__settings
-
-    @property
     def is_loaded(self) -> bool:
         """
         Флаг завершения загрузки.
@@ -113,6 +106,11 @@ class settings_manager(abstract_manager):
         acc_name_val = self._get_first_valid(self.__data, ["account_name"])
         if acc_name_val:
             self.__settings.account_name = acc_name_val
+
+        # Маппинг формата ответа
+        format_val = self._get_first_valid(self.__data, ["response_format", "format", "report_format"])
+        if format_val:
+            self.__settings.response_format = format_val
 
         return True
     
