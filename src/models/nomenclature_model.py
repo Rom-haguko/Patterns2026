@@ -24,6 +24,7 @@ class nomenclature_model(abstract_model):
         :param range: Единица измерения (объект range_model)
         """
         super().__init__()
+        self.__recipe = None
         self.name = name
         self.full_name = full_name
         self.group = group

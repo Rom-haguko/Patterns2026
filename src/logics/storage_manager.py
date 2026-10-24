@@ -112,8 +112,7 @@ class storage_manager(abstract_manager):
 
     def get_by_type(self, entity_type: str) -> list:
         """
-        Возвращает коллекцию сущностей по названию типа сущности (номенклатура, рецепт и т.д.).
-        Инкапсулирует маппинг типов в менеджере хранилища согласно принципам SOLID.
+        Возвращает список сущностей по названию типа (номенклатура, рецепт и т.д.).
         """
         if not entity_type or not isinstance(entity_type, str):
             return None
