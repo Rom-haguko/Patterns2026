@@ -1,6 +1,7 @@
 from enum import Enum
 from datetime import datetime, date, time
 from src.core.abstract_covertor import abstract_covertor
+from src.core.abstract_convertor_factory import abstract_convertor_factory
 from src.core.validator import argument_exception
 
 
@@ -10,13 +11,12 @@ class reference_convertor(abstract_covertor):
     Преобразует объект в словарь свойств с обходом вложенных структур.
     """
 
-    def __init__(self, factory=None):
+    def __init__(self, factory: abstract_convertor_factory = None):
         """
         Инициализирует конвертор ссылок.
+
+        :param factory: Абстрактная фабрика конверторов
         """
-        if factory is None:
-            from src.logics.convert_factory import convert_factory
-            factory = convert_factory()
         self.__factory = factory
         self.__visited: set[int] = set()
 
@@ -87,6 +87,10 @@ class reference_convertor(abstract_covertor):
     def _convert_field_value(self, prop_name: str, val: object) -> object:
         """
         Преобразует значение поля через фабрику конверторов.
+
+        :param prop_name: Имя поля
+        :param val: Значение поля
+        :return: Преобразованное значение
         """
         if val is None:
             return None
@@ -100,12 +104,11 @@ class reference_convertor(abstract_covertor):
         if isinstance(val, dict):
             return {str(k): self._convert_field_value(str(k), v) for k, v in val.items()}
 
-        convertor = self.__factory.get_convertor(val)
-        if isinstance(convertor, reference_convertor):
-            return self._convert_reference_object(val)
+        # Делегируем фабрике
+        if self.__factory is None:
+            raise argument_exception("Фабрика не инициализирована в reference_convertor")
 
-        res = convertor.convert(prop_name, val)
-        return res[prop_name]
+        return self.__factory.convert_value(val)
 
     def _extract_field_names(self, source: object) -> list[str]:
         """
@@ -123,8 +126,4 @@ class reference_convertor(abstract_covertor):
                 if p not in props:
                     props.append(p)
 
-        if not props and hasattr(source, "__dict__"):
-            raw_keys = [k.lstrip("_").split("__")[-1] for k in source.__dict__.keys()]
-            props = [k for k in raw_keys if k]
-
-        return sorted(list(set(props)))
+        return sorted(props)

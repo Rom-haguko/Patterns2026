@@ -1,25 +1,36 @@
-import json
-from enum import Enum
 from datetime import datetime, date, time
 from src.core.abstract_covertor import abstract_covertor
+from src.core.abstract_convertor_factory import abstract_convertor_factory
 from src.logics.basic_convertor import basic_convertor
 from src.logics.datetime_convertor import datetime_convertor
 from src.logics.reference_convertor import reference_convertor
 
 
-class convert_factory:
+class convert_factory(abstract_convertor_factory):
     """
     Фабрика конвертации объектов в словари.
-    Подбирает конверторы по типу и собирает итоговую структуру.
+    Реализует паттерн Фабрика через словарь маппинга типов.
     """
+
+    __mapping: dict[type, abstract_covertor]
 
     def __init__(self):
         """
-        Инициализирует конверторы простых, временных и ссылочных типов.
+        Инициализирует фабрику с регистрацией конверторов в словаре.
         """
         self.__basic_convertor = basic_convertor()
         self.__datetime_convertor = datetime_convertor()
         self.__reference_convertor = reference_convertor(self)
+
+        # Словарь маппинга типов на конверторы (как в report_factory)
+        self.__mapping = {}
+        self.__mapping[int] = self.__basic_convertor
+        self.__mapping[float] = self.__basic_convertor
+        self.__mapping[str] = self.__basic_convertor
+        self.__mapping[bool] = self.__basic_convertor
+        self.__mapping[datetime] = self.__datetime_convertor
+        self.__mapping[date] = self.__datetime_convertor
+        self.__mapping[time] = self.__datetime_convertor
 
     # ─────────── Свойства конверторов ───────────
 
@@ -49,6 +60,7 @@ class convert_factory:
     def get_convertor(self, value_or_type: object) -> abstract_covertor:
         """
         Возвращает подходящий конвертор по типу данных или значению.
+        Использует словарь маппинга для подбора.
 
         :param value_or_type: Тип данных или экземпляр объекта
         :return: Экземпляр абстрактного конвертора
@@ -56,75 +68,34 @@ class convert_factory:
         if value_or_type is None:
             return self.__reference_convertor
 
+        # Если передан тип (класс)
         if isinstance(value_or_type, type):
-            if issubclass(value_or_type, (int, float, str, bool)):
-                return self.__basic_convertor
-            if issubclass(value_or_type, (datetime, date, time)):
-                return self.__datetime_convertor
+            for key_type, convertor in self.__mapping.items():
+                if issubclass(value_or_type, key_type):
+                    return convertor
             return self.__reference_convertor
 
-        if isinstance(value_or_type, (int, float, str, bool)):
-            return self.__basic_convertor
-
-        if isinstance(value_or_type, (datetime, date, time)):
-            return self.__datetime_convertor
+        # Если передан экземпляр
+        for key_type, convertor in self.__mapping.items():
+            if isinstance(value_or_type, key_type):
+                return convertor
 
         return self.__reference_convertor
 
-    # ─────────── Методы сериализации ───────────
-
-    def convert(self, source: object) -> object:
+    def convert_value(self, source: object) -> object:
         """
-        Преобразует объект любого типа в структуру словарей.
+        Конвертирует значение в примитивный тип для сериализации.
+        Использует полиморфизм через конверторы.
 
-        :param source: Исходный объект любого типа
-        :return: Преобразованная структура данных
+        :param source: Исходное значение
+        :return: Примитивное значение (str, int, float, bool, dict, list)
         """
         if source is None:
             return None
 
-        if isinstance(source, (int, float, str, bool)):
-            return source
+        # Подбираем конвертор через полиморфизм
+        convertor = self.get_convertor(source)
 
-        if isinstance(source, (datetime, date, time)):
-            return self.__datetime_convertor.convert("value", source)["value"]
-
-        if isinstance(source, Enum):
-            return source.value
-
-        if isinstance(source, (list, tuple, set)):
-            return [self.convert(item) for item in source]
-
-        if isinstance(source, dict):
-            return {str(k): self.convert(v) for k, v in source.items()}
-
-        return self.__reference_convertor.convert(source)
-
-    def serialize(self, source: object) -> object:
-        """
-        Преобразует объект в структуру словарей.
-        """
-        return self.convert(source)
-
-    def to_json(self, source: object, indent: int = 2) -> str:
-        """
-        Преобразует объект любого типа в строку JSON.
-
-        :param source: Исходный объект
-        :param indent: Величина отступа
-        :return: Строка JSON
-        """
-        data = self.convert(source)
-        return json.dumps(data, ensure_ascii=False, indent=indent)
-
-    def to_json_file(self, source: object, file_path: str, indent: int = 2) -> None:
-        """
-        Сохраняет сериализованный объект в файл JSON.
-
-        :param source: Исходный объект
-        :param file_path: Путь к целевому файлу
-        :param indent: Величина отступа
-        """
-        content = self.to_json(source, indent=indent)
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content + "\n")
+        # Делегируем конвертацию конвертору
+        result = convertor.convert("value", source)
+        return result["value"]

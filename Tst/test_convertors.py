@@ -5,6 +5,7 @@ from src.core.validator import argument_exception
 from src.logics.basic_convertor import basic_convertor
 from src.logics.datetime_convertor import datetime_convertor
 from src.logics.reference_convertor import reference_convertor
+from src.logics.convert_factory import convert_factory
 from src.models.range_model import range_model
 from src.models.organization_model import organization_model
 
@@ -30,22 +31,6 @@ def test_abstract_covertor_cannot_be_instantiated():
     # Действие и проверка
     with pytest.raises(TypeError):
         abstract_covertor()
-
-
-def test_abstract_covertor_convert_alias_works():
-    """
-    <summary>
-    Проверка вызова метода Convert: метод должен делегировать вызов convert.
-    </summary>
-    """
-    # Подготовка
-    convertor = basic_convertor()
-
-    # Действие
-    result = convertor.Convert("field", 42)
-
-    # Проверка
-    assert result == {"field": 42}
 
 
 # ─────────── Тесты basic_convertor ───────────
@@ -265,7 +250,8 @@ def test_reference_convertor_simple_entity():
     </summary>
     """
     # Подготовка
-    convertor = reference_convertor()
+    factory = convert_factory()
+    convertor = factory.reference_convertor
     unit = range_model.create_gram()
 
     # Действие
@@ -285,7 +271,8 @@ def test_reference_convertor_with_field_name():
     </summary>
     """
     # Подготовка
-    convertor = reference_convertor()
+    factory = convert_factory()
+    convertor = factory.reference_convertor
     unit = range_model.create_gram()
 
     # Действие
@@ -303,7 +290,8 @@ def test_reference_convertor_nested_reference():
     </summary>
     """
     # Подготовка
-    convertor = reference_convertor()
+    factory = convert_factory()
+    convertor = factory.reference_convertor
     kg = range_model.create_kilogramm()
 
     # Действие
@@ -323,7 +311,8 @@ def test_reference_convertor_none_value():
     </summary>
     """
     # Подготовка
-    convertor = reference_convertor()
+    factory = convert_factory()
+    convertor = factory.reference_convertor
 
     # Действие
     res_single = convertor.convert(None)
@@ -341,7 +330,8 @@ def test_reference_convertor_circular_reference():
     </summary>
     """
     # Подготовка
-    convertor = reference_convertor()
+    factory = convert_factory()
+    convertor = factory.reference_convertor
     node1 = dummy_circular_node("Первый")
     node2 = dummy_circular_node("Второй")
     node1.next_node = node2
@@ -363,7 +353,8 @@ def test_reference_convertor_primitive_type_raises():
     </summary>
     """
     # Подготовка
-    convertor = reference_convertor()
+    factory = convert_factory()
+    convertor = factory.reference_convertor
 
     # Действие и проверка
     with pytest.raises(argument_exception):

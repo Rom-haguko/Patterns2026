@@ -154,6 +154,27 @@ class storage_manager(abstract_manager):
         code_str = str(code).strip()
         return next((item for item in collection if str(item.id) == code_str or str(item.name).strip() == code_str), None)
 
+    def export_all_to_json(self, file_path: str) -> bool:
+        """
+        Экспортирует все данные из хранилища в один JSON файл.
+
+        :param file_path: Путь к целевому файлу
+        :return: True при успешном экспорте
+        """
+        from src.logics.json_serializer import json_serializer
+        
+        serializer = json_serializer()
+        all_data = {
+            self.range_key(): self.get(self.range_key()),
+            self.nomenclature_key(): self.get(self.nomenclature_key()),
+            self.group_key(): self.get(self.group_key()),
+            self.storage_key(): self.get(self.storage_key()),
+            self.recipe_key(): self.get(self.recipe_key()),
+        }
+        
+        serializer.to_json_file(all_data, file_path)
+        return True
+
     def add(self, key: str, item: object) -> bool:
         """
         Добавляет объект в коллекцию по ключу, если он ещё не присутствует.

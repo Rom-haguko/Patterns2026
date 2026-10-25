@@ -1,5 +1,3 @@
-import os
-import json
 import pytest
 from datetime import datetime, date
 from src.logics.convert_factory import convert_factory
@@ -12,7 +10,6 @@ from src.models.storage_model import storage_model
 from src.models.nomenclature_group_model import nomenclature_group_model
 from src.models.nomenclature_model import nomenclature_model
 from src.models.recipe_model import recipe_model
-from src.models.settings_model import settings_model
 
 
 # ─────────── Тесты инициализации и метода выбора конвертора ───────────
@@ -70,12 +67,12 @@ def test_convert_factory_get_convertor_by_instance():
     assert isinstance(factory.get_convertor(None), reference_convertor)
 
 
-# ─────────── Тесты методов конвертации и сериализации ───────────
+# ─────────── Тесты метода convert_value ───────────
 
-def test_convert_factory_convert_primitives():
+def test_convert_factory_convert_value_primitives():
     """
     <summary>
-    Проверка конвертации примитивных типов и дат через convert_factory.
+    Проверка конвертации примитивных типов и дат через convert_value.
     </summary>
     """
     # Подготовка
@@ -83,10 +80,10 @@ def test_convert_factory_convert_primitives():
     d = date(2026, 10, 24)
 
     # Действие
-    res_int = factory.convert(123)
-    res_str = factory.convert("проверка")
-    res_date = factory.convert(d)
-    res_none = factory.convert(None)
+    res_int = factory.convert_value(123)
+    res_str = factory.convert_value("проверка")
+    res_date = factory.convert_value(d)
+    res_none = factory.convert_value(None)
 
     # Проверка
     assert res_int == 123
@@ -95,33 +92,10 @@ def test_convert_factory_convert_primitives():
     assert res_none is None
 
 
-def test_convert_factory_convert_composite_structures():
+def test_convert_factory_convert_value_range_model():
     """
     <summary>
-    Проверка конвертации составных структур (списки, словари).
-    </summary>
-    """
-    # Подготовка
-    factory = convert_factory()
-    data = {
-        "items": [1, 2, "три"],
-        "date": date(2026, 1, 1),
-        "unit": range_model.create_gram()
-    }
-
-    # Действие
-    result = factory.convert(data)
-
-    # Проверка
-    assert result["items"] == [1, 2, "три"]
-    assert result["date"] == "2026-01-01"
-    assert result["unit"]["name"] == "грамм"
-
-
-def test_convert_factory_convert_range_model():
-    """
-    <summary>
-    Проверка конвертации доменной модели единицы измерения range_model.
+    Проверка конвертации доменной модели единицы измерения через convert_value.
     </summary>
     """
     # Подготовка
@@ -129,7 +103,7 @@ def test_convert_factory_convert_range_model():
     kg = range_model.create_kilogramm()
 
     # Действие
-    result = factory.convert(kg)
+    result = factory.convert_value(kg)
 
     # Проверка
     assert result["name"] == "килограмм"
@@ -137,10 +111,10 @@ def test_convert_factory_convert_range_model():
     assert result["base_range"]["name"] == "грамм"
 
 
-def test_convert_factory_convert_organization_model():
+def test_convert_factory_convert_value_organization_model():
     """
     <summary>
-    Проверка конвертации доменной модели организации organization_model.
+    Проверка конвертации доменной модели организации через convert_value.
     </summary>
     """
     # Подготовка
@@ -154,7 +128,7 @@ def test_convert_factory_convert_organization_model():
     )
 
     # Действие
-    result = factory.convert(org)
+    result = factory.convert_value(org)
 
     # Проверка
     assert result["name"] == "ООО Ромашка"
@@ -164,10 +138,10 @@ def test_convert_factory_convert_organization_model():
     assert result["ownership_form"] == "ООО"
 
 
-def test_convert_factory_convert_storage_model():
+def test_convert_factory_convert_value_storage_model():
     """
     <summary>
-    Проверка конвертации доменной модели склада storage_model.
+    Проверка конвертации доменной модели склада через convert_value.
     </summary>
     """
     # Подготовка
@@ -175,17 +149,17 @@ def test_convert_factory_convert_storage_model():
     wh = storage_model.create(name="Главный склад", address="г. Москва, ул. Цветочная, д. 10")
 
     # Действие
-    result = factory.convert(wh)
+    result = factory.convert_value(wh)
 
     # Проверка
     assert result["name"] == "Главный склад"
     assert result["address"] == "г. Москва, ул. Цветочная, д. 10"
 
 
-def test_convert_factory_convert_nomenclature_model():
+def test_convert_factory_convert_value_nomenclature_model():
     """
     <summary>
-    Проверка конвертации доменной модели номенклатуры nomenclature_model.
+    Проверка конвертации доменной модели номенклатуры через convert_value.
     </summary>
     """
     # Подготовка
@@ -195,7 +169,7 @@ def test_convert_factory_convert_nomenclature_model():
     item = nomenclature_model.create(name="Мука", full_name="Мука пшеничная высший сорт", group=group, range=unit)
 
     # Действие
-    result = factory.convert(item)
+    result = factory.convert_value(item)
 
     # Проверка
     assert result["name"] == "Мука"
@@ -204,10 +178,10 @@ def test_convert_factory_convert_nomenclature_model():
     assert result["range"]["name"] == "грамм"
 
 
-def test_convert_factory_convert_recipe_model():
+def test_convert_factory_convert_value_recipe_model():
     """
     <summary>
-    Проверка конвертации полной технологической карты recipe_model.
+    Проверка конвертации полной технологической карты через convert_value.
     </summary>
     """
     # Подготовка
@@ -215,7 +189,7 @@ def test_convert_factory_convert_recipe_model():
     recipe = recipe_model.create_pizza_margarita()
 
     # Действие
-    result = factory.convert(recipe)
+    result = factory.convert_value(recipe)
 
     # Проверка
     assert "Пицца Маргарита" in result["name"]
@@ -223,44 +197,3 @@ def test_convert_factory_convert_recipe_model():
     assert len(result["steps"]) > 0
     assert result["gross_weight"] > 0
     assert result["net_weight"] > 0
-
-
-def test_convert_factory_to_json_validity():
-    """
-    <summary>
-    Проверка формирования валидной строки JSON методом to_json.
-    </summary>
-    """
-    # Подготовка
-    factory = convert_factory()
-    kg = range_model.create_kilogramm()
-
-    # Действие
-    json_text = factory.to_json(kg)
-    parsed = json.loads(json_text)
-
-    # Проверка
-    assert parsed["name"] == "килограмм"
-    assert parsed["conversion_factor"] == 1000
-    assert parsed["base_range"]["name"] == "грамм"
-
-
-def test_convert_factory_to_json_file(tmp_path):
-    """
-    <summary>
-    Проверка сохранения результата сериализации в файл JSON.
-    </summary>
-    """
-    # Подготовка
-    factory = convert_factory()
-    org = organization_model.create(name="Тест", inn="7701234567", bik="123456789", account="12345678901234567890", ownership_form="ООО")
-    file_path = str(tmp_path / "test_org.json")
-
-    # Действие
-    factory.to_json_file(org, file_path)
-
-    # Проверка
-    assert os.path.exists(file_path)
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    assert data["name"] == "Тест"
