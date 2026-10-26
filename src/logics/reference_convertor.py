@@ -1,5 +1,4 @@
 from enum import Enum
-from datetime import datetime, date, time
 from src.core.abstract_covertor import abstract_covertor
 from src.core.abstract_convertor_factory import abstract_convertor_factory
 from src.core.validator import argument_exception
@@ -11,6 +10,9 @@ class reference_convertor(abstract_covertor):
     Преобразует объект в словарь свойств с обходом вложенных структур.
     """
 
+    __factory: abstract_convertor_factory = None
+    __visited: set[int]
+
     def __init__(self, factory: abstract_convertor_factory = None):
         """
         Инициализирует конвертор ссылок.
@@ -18,7 +20,7 @@ class reference_convertor(abstract_covertor):
         :param factory: Абстрактная фабрика конверторов
         """
         self.__factory = factory
-        self.__visited: set[int] = set()
+        self.__visited = set()
 
     # ─────────── Методы конвертации ───────────
 
@@ -34,8 +36,10 @@ class reference_convertor(abstract_covertor):
         if not isinstance(field, str):
             if field is None:
                 return {}
-            if isinstance(field, (int, float, bool, datetime, date, time)):
-                raise argument_exception(f"Значение {type(field)} не является ссылочным типом")
+            if self.__factory is not None:
+                convertor = self.__factory.get_convertor(field)
+                if not isinstance(convertor, reference_convertor):
+                    raise argument_exception(f"Значение {type(field)} не является ссылочным типом")
             return self._convert_reference_object(field)
 
         # Вызов с двумя аргументами: convert("field_name", value)
@@ -45,8 +49,10 @@ class reference_convertor(abstract_covertor):
         if value is None:
             return {field.strip(): None}
 
-        if isinstance(value, (int, float, bool, datetime, date, time)):
-            raise argument_exception(f"Значение {type(value)} не является ссылочным типом")
+        if self.__factory is not None:
+            convertor = self.__factory.get_convertor(value)
+            if not isinstance(convertor, reference_convertor):
+                raise argument_exception(f"Значение {type(value)} не является ссылочным типом")
 
         converted = self._convert_reference_object(value)
         return {field.strip(): converted}
@@ -104,7 +110,6 @@ class reference_convertor(abstract_covertor):
         if isinstance(val, dict):
             return {str(k): self._convert_field_value(str(k), v) for k, v in val.items()}
 
-        # Делегируем фабрике
         if self.__factory is None:
             raise argument_exception("Фабрика не инициализирована в reference_convertor")
 

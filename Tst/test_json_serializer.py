@@ -40,12 +40,12 @@ def test_json_serializer_init_with_factory():
     assert serializer is not None
 
 
-# ─────────── Тесты метода convert ───────────
+# ─────────── Тесты метода to_json ───────────
 
-def test_json_serializer_convert_primitives():
+def test_json_serializer_to_json_primitives():
     """
     <summary>
-    Проверка конвертации примитивных типов через сериализатор.
+    Проверка сериализации примитивных типов в JSON.
     </summary>
     """
     # Подготовка
@@ -53,22 +53,22 @@ def test_json_serializer_convert_primitives():
     d = date(2026, 10, 24)
 
     # Действие
-    res_int = serializer.convert(123)
-    res_str = serializer.convert("проверка")
-    res_date = serializer.convert(d)
-    res_none = serializer.convert(None)
+    res_int = serializer.to_json(123)
+    res_str = serializer.to_json("проверка")
+    res_date = serializer.to_json(d)
+    res_none = serializer.to_json(None)
 
     # Проверка
-    assert res_int == 123
-    assert res_str == "проверка"
-    assert res_date == "2026-10-24"
-    assert res_none is None
+    assert json.loads(res_int) == 123
+    assert json.loads(res_str) == "проверка"
+    assert json.loads(res_date) == "2026-10-24"
+    assert json.loads(res_none) is None
 
 
-def test_json_serializer_convert_range_model():
+def test_json_serializer_to_json_range_model():
     """
     <summary>
-    Проверка конвертации доменной модели единицы измерения через сериализатор.
+    Проверка сериализации доменной модели единицы измерения в JSON.
     </summary>
     """
     # Подготовка
@@ -76,18 +76,19 @@ def test_json_serializer_convert_range_model():
     kg = range_model.create_kilogramm()
 
     # Действие
-    result = serializer.convert(kg)
+    json_text = serializer.to_json(kg)
+    parsed = json.loads(json_text)
 
     # Проверка
-    assert result["name"] == "килограмм"
-    assert result["conversion_factor"] == 1000
-    assert result["base_range"]["name"] == "грамм"
+    assert parsed["name"] == "килограмм"
+    assert parsed["conversion_factor"] == 1000
+    assert parsed["base_range"]["name"] == "грамм"
 
 
-def test_json_serializer_convert_organization_model():
+def test_json_serializer_to_json_organization_model():
     """
     <summary>
-    Проверка конвертации доменной модели организации через сериализатор.
+    Проверка сериализации доменной модели организации в JSON.
     </summary>
     """
     # Подготовка
@@ -101,18 +102,19 @@ def test_json_serializer_convert_organization_model():
     )
 
     # Действие
-    result = serializer.convert(org)
+    json_text = serializer.to_json(org)
+    parsed = json.loads(json_text)
 
     # Проверка
-    assert result["name"] == "ООО Ромашка"
-    assert result["inn"] == "7701234567"
-    assert result["bik"] == "123456789"
+    assert parsed["name"] == "ООО Ромашка"
+    assert parsed["inn"] == "7701234567"
+    assert parsed["bik"] == "123456789"
 
 
-def test_json_serializer_convert_recipe_model():
+def test_json_serializer_to_json_recipe_model():
     """
     <summary>
-    Проверка конвертации полной технологической карты через сериализатор.
+    Проверка сериализации полной технологической карты в JSON.
     </summary>
     """
     # Подготовка
@@ -120,17 +122,16 @@ def test_json_serializer_convert_recipe_model():
     recipe = recipe_model.create_pizza_margarita()
 
     # Действие
-    result = serializer.convert(recipe)
+    json_text = serializer.to_json(recipe)
+    parsed = json.loads(json_text)
 
     # Проверка
-    assert "Пицца Маргарита" in result["name"]
-    assert len(result["rows"]) > 0
-    assert len(result["steps"]) > 0
-    assert result["gross_weight"] > 0
-    assert result["net_weight"] > 0
+    assert "Пицца Маргарита" in parsed["name"]
+    assert len(parsed["rows"]) > 0
+    assert len(parsed["steps"]) > 0
+    assert parsed["gross_weight"] > 0
+    assert parsed["net_weight"] > 0
 
-
-# ─────────── Тесты метода to_json ───────────
 
 def test_json_serializer_to_json_validity():
     """
@@ -150,25 +151,6 @@ def test_json_serializer_to_json_validity():
     assert parsed["name"] == "килограмм"
     assert parsed["conversion_factor"] == 1000
     assert parsed["base_range"]["name"] == "грамм"
-
-
-def test_json_serializer_to_json_recipe():
-    """
-    <summary>
-    Проверка формирования валидной строки JSON для рецепта.
-    </summary>
-    """
-    # Подготовка
-    serializer = json_serializer()
-    recipe = recipe_model.create_pizza_margarita()
-
-    # Действие
-    json_text = serializer.to_json(recipe)
-    parsed = json.loads(json_text)
-
-    # Проверка
-    assert "Пицца Маргарита" in parsed["name"]
-    assert len(parsed["rows"]) > 0
 
 
 # ─────────── Тесты метода to_json_file ───────────

@@ -93,6 +93,14 @@ class convert_factory(abstract_convertor_factory):
         if source is None:
             return None
 
+        # Обработка словарей
+        if isinstance(source, dict):
+            return {str(k): self.convert_value(v) for k, v in source.items()}
+
+        # Обработка списков, кортежей, множеств
+        if isinstance(source, (list, tuple, set)):
+            return [self.convert_value(item) for item in source]
+
         # Подбираем конвертор через полиморфизм
         convertor = self.get_convertor(source)
 
