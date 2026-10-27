@@ -20,7 +20,6 @@ __all__ = [
     "organization_model",
     "nomenclature_model",
     "recipe_row_model",
-    "ingredient_model",
     "recipe_step_model",
     "recipe_model",
 ]
