@@ -81,7 +81,7 @@ class reference_convertor(abstract_covertor):
             for prop in field_names:
                 try:
                     val = getattr(source, prop)
-                except Exception:
+                except AttributeError:
                     continue
 
                 result[prop] = self._convert_field_value(prop, val)
