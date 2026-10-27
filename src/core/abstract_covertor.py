@@ -10,7 +10,7 @@ class abstract_covertor(ABC):
     # ─────────── Абстрактные методы ───────────
 
     @abstractmethod
-    def convert(self, field: str, value: object = None) -> dict:
+    def convert(self, field: str, value: object) -> dict:
         """
         Преобразует поле и переданный объект в словарь формата {поле: данные}.
 

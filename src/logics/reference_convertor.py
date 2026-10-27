@@ -24,38 +24,38 @@ class reference_convertor(abstract_covertor):
 
     # ─────────── Методы конвертации ───────────
 
-    def convert(self, field: str, value: object = None) -> dict:
+    def convert(self, field: str, value: object) -> dict:
         """
         Преобразует ссылочный объект в словарь полей.
 
-        :param field: Наименование поля или одиночный объект
-        :param value: Ссылочный объект
+        :param field: Наименование поля
+        :param value: Ссылочный объект или составное значение
         :return: Словарь с полями объекта
         """
-        # Вызов с одним аргументом: convert(source_obj)
-        if not isinstance(field, str):
-            if field is None:
-                return {}
-            if self.__factory is not None:
-                convertor = self.__factory.get_convertor(field)
-                if not isinstance(convertor, reference_convertor):
-                    raise argument_exception(f"Значение {type(field)} не является ссылочным типом")
-            return self._convert_reference_object(field)
-
-        # Вызов с двумя аргументами: convert("field_name", value)
-        if not field.strip():
+        if not isinstance(field, str) or not field.strip():
             raise argument_exception("Наименование поля должно быть непустой строкой")
 
-        if value is None:
-            return {field.strip(): None}
+        field_name = field.strip()
 
-        if self.__factory is not None:
-            convertor = self.__factory.get_convertor(value)
-            if not isinstance(convertor, reference_convertor):
-                raise argument_exception(f"Значение {type(value)} не является ссылочным типом")
+        if value is None:
+            return {field_name: None}
+
+        # Списки, словари и перечисления обрабатываются как составные значения
+        if isinstance(value, (Enum, list, tuple, set, dict)):
+            return {field_name: self._convert_field_value(field_name, value)}
+
+        if self.__factory is None:
+            raise argument_exception("Фабрика не инициализирована в reference_convertor")
+
+        convertor = self.__factory.get_convertor(value)
+        if not isinstance(convertor, reference_convertor):
+            raise argument_exception(f"Значение {type(value)} не является ссылочным типом")
 
         converted = self._convert_reference_object(value)
-        return {field.strip(): converted}
+        if converted == {}:
+            raise argument_exception(f"Неподдерживаемый тип для сериализации: {type(value)}")
+
+        return {field_name: converted}
 
     # ─────────── Внутренние методы ───────────
 

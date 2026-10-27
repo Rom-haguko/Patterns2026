@@ -99,20 +99,18 @@ def test_basic_convertor_bool():
     assert result == {"is_active": True}
 
 
-def test_basic_convertor_single_argument():
+def test_basic_convertor_requires_field_and_value():
     """
     <summary>
-    Проверка конвертации одиночного значения без указания имени поля.
+    Проверка строгого контракта: метод convert требует имя поля и значение.
     </summary>
     """
     # Подготовка
     convertor = basic_convertor()
 
-    # Действие
-    result = convertor.convert(100)
-
-    # Проверка
-    assert result == {"value": 100}
+    # Действие и проверка
+    with pytest.raises(TypeError):
+        convertor.convert(100)
 
 
 def test_basic_convertor_empty_field_raises():
@@ -196,21 +194,18 @@ def test_datetime_convertor_time():
     assert result == {"work_time": "15:45:00"}
 
 
-def test_datetime_convertor_single_argument():
+def test_datetime_convertor_requires_field_and_value():
     """
     <summary>
-    Проверка конвертации даты без имени поля.
+    Проверка строгого контракта: метод convert требует имя поля и значение.
     </summary>
     """
     # Подготовка
     convertor = datetime_convertor()
-    d = date(2026, 10, 24)
 
-    # Действие
-    result = convertor.convert(d)
-
-    # Проверка
-    assert result == {"value": "2026-10-24"}
+    # Действие и проверка
+    with pytest.raises(TypeError):
+        convertor.convert(date(2026, 10, 24))
 
 
 def test_datetime_convertor_invalid_type_raises():
@@ -255,13 +250,13 @@ def test_reference_convertor_simple_entity():
     unit = range_model.create_gram()
 
     # Действие
-    result = convertor.convert(unit)
+    result = convertor.convert("unit", unit)
 
     # Проверка
-    assert result["name"] == "грамм"
-    assert result["conversion_factor"] == 1
-    assert result["base_range"] is None
-    assert "id" in result
+    assert result["unit"]["name"] == "грамм"
+    assert result["unit"]["conversion_factor"] == 1
+    assert result["unit"]["base_range"] is None
+    assert "id" in result["unit"]
 
 
 def test_reference_convertor_with_field_name():
@@ -295,13 +290,13 @@ def test_reference_convertor_nested_reference():
     kg = range_model.create_kilogramm()
 
     # Действие
-    result = convertor.convert(kg)
+    result = convertor.convert("unit", kg)
 
     # Проверка
-    assert result["name"] == "килограмм"
-    assert result["conversion_factor"] == 1000
-    assert result["base_range"] is not None
-    assert result["base_range"]["name"] == "грамм"
+    assert result["unit"]["name"] == "килограмм"
+    assert result["unit"]["conversion_factor"] == 1000
+    assert result["unit"]["base_range"] is not None
+    assert result["unit"]["base_range"]["name"] == "грамм"
 
 
 def test_reference_convertor_none_value():
@@ -315,11 +310,9 @@ def test_reference_convertor_none_value():
     convertor = factory.reference_convertor
 
     # Действие
-    res_single = convertor.convert(None)
     res_field = convertor.convert("parent", None)
 
     # Проверка
-    assert res_single == {}
     assert res_field == {"parent": None}
 
 
@@ -338,12 +331,12 @@ def test_reference_convertor_circular_reference():
     node2.next_node = node1
 
     # Действие
-    result = convertor.convert(node1)
+    result = convertor.convert("node", node1)
 
     # Проверка
-    assert result["name"] == "Первый"
-    assert result["next_node"]["name"] == "Второй"
-    assert result["next_node"]["next_node"] == {"id": "node-id"}
+    assert result["node"]["name"] == "Первый"
+    assert result["node"]["next_node"]["name"] == "Второй"
+    assert result["node"]["next_node"]["next_node"] == {"id": "node-id"}
 
 
 def test_reference_convertor_primitive_type_raises():
