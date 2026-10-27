@@ -1,3 +1,4 @@
+import json
 import pytest
 from src.logics.storage_manager import storage_manager
 from src.models.nomenclature_group_model import nomenclature_group_model
@@ -336,3 +337,42 @@ def test_data_property_returns_dict():
     assert storage_manager.nomenclature_key() in data
     assert storage_manager.group_key() in data
     assert storage_manager.storage_key() in data
+
+# ─────────────────────────── Тест экспорта в JSON ─────────────────────────────
+
+def test_export_all_to_json_writes_all_collections(tmp_path):
+    """
+    <summary>
+    Проверка экспорта всех коллекций хранилища в один JSON-файл.
+    </summary>
+    """
+    # Подготовка
+    manager = storage_manager()
+    target = tmp_path / "all_data.json"
+
+    # Действие
+    result = manager.export_all_to_json(str(target))
+
+    # Проверка
+    assert result is True
+    assert target.exists()
+
+    data = json.loads(target.read_text(encoding="utf-8"))
+    expected_keys = {
+        storage_manager.range_key(),
+        storage_manager.nomenclature_key(),
+        storage_manager.group_key(),
+        storage_manager.storage_key(),
+        storage_manager.recipe_key(),
+    }
+    assert set(data.keys()) == expected_keys
+
+    for key in expected_keys:
+        assert isinstance(data[key], list)
+        assert len(data[key]) == len(manager.get(key))
+        assert [item["id"] for item in data[key]] == [item.id for item in manager.get(key)]
+
+    recipes = data[storage_manager.recipe_key()]
+    assert len(recipes) > 0
+    assert len(recipes[0]["rows"]) > 0
+    assert recipes[0]["rows"][0]["nomenclature"]["recipe"] is not None

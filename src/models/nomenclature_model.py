@@ -24,6 +24,7 @@ class nomenclature_model(abstract_model):
         :param range: Единица измерения (объект range_model)
         """
         super().__init__()
+        self.__recipe = None
         self.name = name
         self.full_name = full_name
         self.group = group
@@ -112,8 +113,10 @@ class nomenclature_model(abstract_model):
         Устанавливает рецепт для данной номенклатуры.
         """
         if value is not None:
-            # Проверяем класс по имени, чтобы избежать проблем с циклическими импортами
-            if type(value).__name__ != "recipe_model":
+            # Локальный импорт нужен, чтобы не создавать циклическую зависимость моделей
+            from src.models.recipe_model import recipe_model
+
+            if not isinstance(value, recipe_model):
                 raise arguments_exception("recipe", "Рецепт должен быть экземпляром recipe_model")
         self.__recipe = value
 
