@@ -1,5 +1,7 @@
 import pytest
 from datetime import datetime, date
+from src.core.validator import argument_exception
+from src.dtos.report_type_enum import report_type_enum
 from src.logics.convert_factory import convert_factory
 from src.logics.basic_convertor import basic_convertor
 from src.logics.datetime_convertor import datetime_convertor
@@ -197,3 +199,68 @@ def test_convert_factory_convert_value_recipe_model():
     assert len(result["steps"]) > 0
     assert result["gross_weight"] > 0
     assert result["net_weight"] > 0
+
+# ─────────── Тесты составных структур и перечислений ───────────
+
+def test_convert_factory_convert_value_list():
+    """
+    <summary>
+    Проверка рекурсивной конвертации списка с примитивами и моделью.
+    </summary>
+    """
+    # Подготовка
+    factory = convert_factory()
+    unit = range_model.create_gram()
+
+    # Действие
+    result = factory.convert_value([1, "текст", unit])
+
+    # Проверка
+    assert result[0] == 1
+    assert result[1] == "текст"
+    assert result[2]["name"] == "грамм"
+
+
+def test_convert_factory_convert_value_dict():
+    """
+    <summary>
+    Проверка рекурсивной конвертации словаря с вложенной моделью и перечислением.
+    </summary>
+    """
+    # Подготовка
+    factory = convert_factory()
+    unit = range_model.create_gram()
+
+    # Действие
+    result = factory.convert_value({"unit": unit, "format": report_type_enum.CSV})
+
+    # Проверка
+    assert result["unit"]["name"] == "грамм"
+    assert result["format"] == report_type_enum.CSV.value
+
+
+def test_convert_factory_convert_value_enum():
+    """
+    <summary>
+    Проверка конвертации перечисления в его значение.
+    </summary>
+    """
+    # Подготовка
+    factory = convert_factory()
+
+    # Действие и проверка
+    assert factory.convert_value(report_type_enum.TXT) == report_type_enum.TXT.value
+
+
+def test_convert_factory_convert_value_unknown_type_raises():
+    """
+    <summary>
+    Проверка ошибки при попытке сериализовать неизвестный тип.
+    </summary>
+    """
+    # Подготовка
+    factory = convert_factory()
+
+    # Действие и проверка
+    with pytest.raises(argument_exception):
+        factory.convert_value(object())

@@ -2,11 +2,13 @@ import os
 import json
 import pytest
 from datetime import datetime, date
+from src.dtos.report_type_enum import report_type_enum
 from src.logics.json_serializer import json_serializer
 from src.logics.convert_factory import convert_factory
 from src.models.range_model import range_model
 from src.models.organization_model import organization_model
 from src.models.recipe_model import recipe_model
+from src.models.settings_model import settings_model
 
 
 # ─────────── Тесты инициализации ───────────
@@ -180,3 +182,43 @@ def test_json_serializer_to_json_file(tmp_path):
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     assert data["name"] == "Тест"
+
+# ─────────── Тесты вложенных структур и настроек ───────────
+
+def test_json_serializer_nested_recipe():
+    """
+    <summary>
+    Проверка сериализации вложенного рецепта внутри номенклатуры строки.
+    </summary>
+    """
+    # Подготовка
+    serializer = json_serializer()
+    recipe = recipe_model.create_pizza_margarita()
+
+    # Действие
+    parsed = json.loads(serializer.to_json(recipe))
+    nested_recipe = parsed["rows"][0]["nomenclature"]["recipe"]
+
+    # Проверка
+    assert isinstance(nested_recipe, dict)
+    assert nested_recipe["name"] == "Тесто дрожжевое (заготовка)"
+    assert len(nested_recipe["rows"]) > 0
+
+
+def test_json_serializer_settings_model_with_enum():
+    """
+    Проверка сериализации модели настроек с перечислением формата ответа.
+    </summary>
+    """
+    # Подготовка
+    serializer = json_serializer()
+    settings = settings_model()
+    settings.boss_name = "Гуреев Р. А."
+    settings.response_format = report_type_enum.CSV
+
+    # Действие
+    parsed = json.loads(serializer.to_json(settings))
+
+    # Проверка
+    assert parsed["boss_name"] == "Гуреев Р. А."
+    assert parsed["response_format"] == report_type_enum.CSV.value
