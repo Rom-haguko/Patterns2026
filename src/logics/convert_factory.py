@@ -1,6 +1,8 @@
 from datetime import datetime, date, time
+from enum import Enum
 from src.core.abstract_covertor import abstract_covertor
 from src.core.abstract_convertor_factory import abstract_convertor_factory
+from src.core.validator import argument_exception
 from src.logics.basic_convertor import basic_convertor
 from src.logics.datetime_convertor import datetime_convertor
 from src.logics.reference_convertor import reference_convertor
@@ -93,6 +95,13 @@ class convert_factory(abstract_convertor_factory):
         if source is None:
             return None
 
+        # Перечисления сохраняем как их значение, если оно примитивное
+        if isinstance(source, Enum):
+            enum_value = source.value
+            if isinstance(enum_value, (str, int, float, bool)) or enum_value is None:
+                return enum_value
+            return source.name
+
         # Обработка словарей
         if isinstance(source, dict):
             return {str(k): self.convert_value(v) for k, v in source.items()}
@@ -101,9 +110,14 @@ class convert_factory(abstract_convertor_factory):
         if isinstance(source, (list, tuple, set)):
             return [self.convert_value(item) for item in source]
 
-        # Подбираем конвертор через полиморфизм
+        # Подбираем конвертор по типу значения
         convertor = self.get_convertor(source)
 
         # Делегируем конвертацию конвертору
         result = convertor.convert("value", source)
-        return result["value"]
+        converted = result["value"]
+
+        if converted == {}:
+            raise argument_exception(f"Неподдерживаемый тип для сериализации: {type(source)}")
+
+        return converted
