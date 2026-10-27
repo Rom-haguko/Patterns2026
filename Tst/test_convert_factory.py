@@ -1,5 +1,6 @@
 import pytest
 from datetime import datetime, date
+from enum import Enum
 from src.core.validator import argument_exception
 from src.dtos.report_type_enum import report_type_enum
 from src.logics.convert_factory import convert_factory
@@ -264,3 +265,19 @@ def test_convert_factory_convert_value_unknown_type_raises():
     # Действие и проверка
     with pytest.raises(argument_exception):
         factory.convert_value(object())
+
+
+def test_convert_factory_convert_value_enum_with_object_value():
+    """
+    <summary>
+    Проверка использования имени перечисления, если его значение не примитивное.
+    </summary>
+    """
+    # Подготовка
+    class payload_enum(Enum):
+        DICT = {"x": 1}
+
+    factory = convert_factory()
+
+    # Действие и проверка
+    assert factory.convert_value(payload_enum.DICT) == "DICT"

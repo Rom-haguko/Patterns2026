@@ -3,6 +3,7 @@ from src.core.exception import arguments_exception
 from src.models.nomenclature_group_model import nomenclature_group_model
 from src.models.nomenclature_model import nomenclature_model
 from src.models.range_model import range_model
+from src.models.recipe_model import recipe_model
 
 
 def test_nomenclature_model_successful_creation():
@@ -118,3 +119,34 @@ def test_nomenclature_model_wrong_range_type_raises_exception():
     # Действие & Проверка
     with pytest.raises(arguments_exception):
         nomenclature_model(item_name, item_full_name, category, invalid_range)
+
+def test_nomenclature_model_accepts_recipe_model():
+    """
+    <summary>
+    Проверка установки рецепта, который является экземпляром recipe_model.
+    </summary>
+    """
+    # Подготовка
+    item = nomenclature_model("Мука", "Мука пшеничная", nomenclature_group_model("Сырьё"), range_model("грамм", 1))
+    recipe = recipe_model.create(name="Тесто")
+
+    # Действие
+    item.recipe = recipe
+
+    # Проверка
+    assert item.recipe is recipe
+
+
+def test_nomenclature_model_rejects_foreign_recipe_type():
+    """
+    <summary>
+    Проверка отказа при установке объекта с именем класса recipe_model, но чужим типом.
+    </summary>
+    """
+    # Подготовка
+    item = nomenclature_model("Мука", "Мука пшеничная", nomenclature_group_model("Сырьё"), range_model("грамм", 1))
+    fake_recipe = type("recipe_model", (), {})()
+
+    # Действие и проверка
+    with pytest.raises(arguments_exception):
+        item.recipe = fake_recipe

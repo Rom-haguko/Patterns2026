@@ -20,6 +20,27 @@ class dummy_circular_node:
         self.next_node = None
 
 
+class attribute_error_node:
+    """
+    Вспомогательный тестовый класс со свойством, которое бросает AttributeError.
+    """
+    def __init__(self, name: str):
+        self.name = name
+
+    @property
+    def broken(self):
+        raise AttributeError("Свойство недоступно")
+
+
+class recursion_error_node:
+    """
+    Вспомогательный тестовый класс со свойством, которое бросает RecursionError.
+    """
+    @property
+    def broken(self):
+        raise RecursionError("Циклический обход")
+
+
 # ─────────── Тесты abstract_covertor ───────────
 
 def test_abstract_covertor_cannot_be_instantiated():
@@ -352,3 +373,37 @@ def test_reference_convertor_primitive_type_raises():
     # Действие и проверка
     with pytest.raises(argument_exception):
         convertor.convert("number", 123)
+
+def test_reference_convertor_skips_attribute_error():
+    """
+    <summary>
+    Проверка пропуска свойства, которое бросает AttributeError.
+    </summary>
+    """
+    # Подготовка
+    factory = convert_factory()
+    convertor = factory.reference_convertor
+    node = attribute_error_node("Тестовый узел")
+
+    # Действие
+    result = convertor.convert("node", node)
+
+    # Проверка
+    assert result["node"]["name"] == "Тестовый узел"
+    assert "broken" not in result["node"]
+
+
+def test_reference_convertor_propagates_recursion_error():
+    """
+    <summary>
+    Проверка проброса RecursionError при обходе свойства.
+    </summary>
+    """
+    # Подготовка
+    factory = convert_factory()
+    convertor = factory.reference_convertor
+    node = recursion_error_node()
+
+    # Действие и проверка
+    with pytest.raises(RecursionError):
+        convertor.convert("node", node)

@@ -370,3 +370,9 @@ def test_export_all_to_json_writes_all_collections(tmp_path):
     for key in expected_keys:
         assert isinstance(data[key], list)
         assert len(data[key]) == len(manager.get(key))
+        assert [item["id"] for item in data[key]] == [item.id for item in manager.get(key)]
+
+    recipes = data[storage_manager.recipe_key()]
+    assert len(recipes) > 0
+    assert len(recipes[0]["rows"]) > 0
+    assert recipes[0]["rows"][0]["nomenclature"]["recipe"] is not None
