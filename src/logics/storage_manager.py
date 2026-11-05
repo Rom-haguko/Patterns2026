@@ -1,6 +1,5 @@
 from src.core.abstract_manager import abstract_manager
 from src.core.validator import validator
-from src.core.file_resolver import FilePathResolver
 from src.models.nomenclature_group_model import nomenclature_group_model
 from src.models.nomenclature_model import nomenclature_model
 from src.models.range_model import range_model
@@ -122,9 +121,7 @@ class storage_manager(abstract_manager):
             "номенклатура": self.nomenclature_key(),
             "nomenclature": self.nomenclature_key(),
             "nomenclature_model": self.nomenclature_key(),
-            "единица измерения": self.range_key(),
             "единица_измерения": self.range_key(),
-            "единица": self.range_key(),
             "range": self.range_key(),
             "range_model": self.range_key(),
             "рецепт": self.recipe_key(),
@@ -133,8 +130,7 @@ class storage_manager(abstract_manager):
             "склад": self.storage_key(),
             "storage": self.storage_key(),
             "storage_model": self.storage_key(),
-            "группа": self.group_key(),
-            "group": self.group_key(),
+            "группа_номенклатуры": self.group_key(),
             "nomenclature_group_model": self.group_key(),
         }
 
@@ -214,7 +210,7 @@ class storage_manager(abstract_manager):
         Создаёт базовые единицы измерения через фабричные методы range_model
         и наполняет ими коллекцию.
         """
-        kilogram = range_model.create_kilogramm()
+        kilogram = range_model.create_kilogram()
         gram = kilogram.base_range
         milliliter = range_model.create_milliliter()
         liter = range_model.create_liter(milliliter)

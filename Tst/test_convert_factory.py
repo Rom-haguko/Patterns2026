@@ -1,82 +1,88 @@
-import pytest
-from datetime import datetime, date
+from datetime import date, datetime
 from enum import Enum
-from src.core.validator import argument_exception
+import pytest
+from src.core.exception import arguments_exception
 from src.dtos.report_type_enum import report_type_enum
-from src.logics.convert_factory import convert_factory
 from src.logics.basic_convertor import basic_convertor
+from src.logics.convert_factory import convert_factory
 from src.logics.datetime_convertor import datetime_convertor
 from src.logics.reference_convertor import reference_convertor
-from src.models.range_model import range_model
-from src.models.organization_model import organization_model
-from src.models.storage_model import storage_model
 from src.models.nomenclature_group_model import nomenclature_group_model
 from src.models.nomenclature_model import nomenclature_model
+from src.models.organization_model import organization_model
+from src.models.range_model import range_model
 from src.models.recipe_model import recipe_model
+from src.models.storage_model import storage_model
 
-
-# ─────────── Тесты инициализации и метода выбора конвертора ───────────
 
 def test_convert_factory_init():
     """
-    <summary>
     Проверка создания фабрики и доступности базовых конверторов.
-    </summary>
     """
-    # Подготовка и действие
+    # Подготовка
+    # Действие
     factory = convert_factory()
 
-    # Проверка
+    # Проверки
     assert isinstance(factory.basic_convertor, basic_convertor)
     assert isinstance(factory.datetime_convertor, datetime_convertor)
     assert isinstance(factory.reference_convertor, reference_convertor)
 
 
-def test_convert_factory_get_convertor_by_type():
+def test_convert_factory_get_converter_by_type():
     """
-    <summary>
-    Проверка подбора конвертора методом get_convertor по классу типа.
-    </summary>
+    Проверка подбора конвертора методом get_converter по классу типа.
     """
     # Подготовка
     factory = convert_factory()
 
-    # Действие и проверка
-    assert isinstance(factory.get_convertor(int), basic_convertor)
-    assert isinstance(factory.get_convertor(str), basic_convertor)
-    assert isinstance(factory.get_convertor(float), basic_convertor)
-    assert isinstance(factory.get_convertor(bool), basic_convertor)
-    assert isinstance(factory.get_convertor(datetime), datetime_convertor)
-    assert isinstance(factory.get_convertor(date), datetime_convertor)
-    assert isinstance(factory.get_convertor(range_model), reference_convertor)
-    assert isinstance(factory.get_convertor(organization_model), reference_convertor)
+    # Действие
+    int_conv = factory.get_converter(int)
+    str_conv = factory.get_converter(str)
+    float_conv = factory.get_converter(float)
+    bool_conv = factory.get_converter(bool)
+    dt_conv = factory.get_converter(datetime)
+    date_conv = factory.get_converter(date)
+    range_conv = factory.get_converter(range_model)
+    org_conv = factory.get_converter(organization_model)
+
+    # Проверки
+    assert isinstance(int_conv, basic_convertor)
+    assert isinstance(str_conv, basic_convertor)
+    assert isinstance(float_conv, basic_convertor)
+    assert isinstance(bool_conv, basic_convertor)
+    assert isinstance(dt_conv, datetime_convertor)
+    assert isinstance(date_conv, datetime_convertor)
+    assert isinstance(range_conv, reference_convertor)
+    assert isinstance(org_conv, reference_convertor)
 
 
-def test_convert_factory_get_convertor_by_instance():
+def test_convert_factory_get_converter_by_instance():
     """
-    <summary>
-    Проверка подбора конвертора методом get_convertor по экземпляру объекта.
-    </summary>
+    Проверка подбора конвертора методом get_converter по экземпляру объекта.
     """
     # Подготовка
     factory = convert_factory()
     unit = range_model.create_gram()
 
-    # Действие и проверка
-    assert isinstance(factory.get_convertor(42), basic_convertor)
-    assert isinstance(factory.get_convertor("текст"), basic_convertor)
-    assert isinstance(factory.get_convertor(datetime.now()), datetime_convertor)
-    assert isinstance(factory.get_convertor(unit), reference_convertor)
-    assert isinstance(factory.get_convertor(None), reference_convertor)
+    # Действие
+    int_conv = factory.get_converter(42)
+    str_conv = factory.get_converter("текст")
+    dt_conv = factory.get_converter(datetime.now())
+    unit_conv = factory.get_converter(unit)
+    none_conv = factory.get_converter(None)
 
+    # Проверки
+    assert isinstance(int_conv, basic_convertor)
+    assert isinstance(str_conv, basic_convertor)
+    assert isinstance(dt_conv, datetime_convertor)
+    assert isinstance(unit_conv, reference_convertor)
+    assert isinstance(none_conv, reference_convertor)
 
-# ─────────── Тесты метода convert_value ───────────
 
 def test_convert_factory_convert_value_primitives():
     """
-    <summary>
     Проверка конвертации примитивных типов и дат через convert_value.
-    </summary>
     """
     # Подготовка
     factory = convert_factory()
@@ -88,7 +94,7 @@ def test_convert_factory_convert_value_primitives():
     res_date = factory.convert_value(d)
     res_none = factory.convert_value(None)
 
-    # Проверка
+    # Проверки
     assert res_int == 123
     assert res_str == "проверка"
     assert res_date == "2026-10-24"
@@ -97,18 +103,16 @@ def test_convert_factory_convert_value_primitives():
 
 def test_convert_factory_convert_value_range_model():
     """
-    <summary>
     Проверка конвертации доменной модели единицы измерения через convert_value.
-    </summary>
     """
     # Подготовка
     factory = convert_factory()
-    kg = range_model.create_kilogramm()
+    kg = range_model.create_kilogram()
 
     # Действие
     result = factory.convert_value(kg)
 
-    # Проверка
+    # Проверки
     assert result["name"] == "килограмм"
     assert result["conversion_factor"] == 1000
     assert result["base_range"]["name"] == "грамм"
@@ -116,9 +120,7 @@ def test_convert_factory_convert_value_range_model():
 
 def test_convert_factory_convert_value_organization_model():
     """
-    <summary>
     Проверка конвертации доменной модели организации через convert_value.
-    </summary>
     """
     # Подготовка
     factory = convert_factory()
@@ -133,7 +135,7 @@ def test_convert_factory_convert_value_organization_model():
     # Действие
     result = factory.convert_value(org)
 
-    # Проверка
+    # Проверки
     assert result["name"] == "ООО Ромашка"
     assert result["inn"] == "7701234567"
     assert result["bik"] == "123456789"
@@ -143,9 +145,7 @@ def test_convert_factory_convert_value_organization_model():
 
 def test_convert_factory_convert_value_storage_model():
     """
-    <summary>
     Проверка конвертации доменной модели склада через convert_value.
-    </summary>
     """
     # Подготовка
     factory = convert_factory()
@@ -154,16 +154,14 @@ def test_convert_factory_convert_value_storage_model():
     # Действие
     result = factory.convert_value(wh)
 
-    # Проверка
+    # Проверки
     assert result["name"] == "Главный склад"
     assert result["address"] == "г. Москва, ул. Цветочная, д. 10"
 
 
 def test_convert_factory_convert_value_nomenclature_model():
     """
-    <summary>
     Проверка конвертации доменной модели номенклатуры через convert_value.
-    </summary>
     """
     # Подготовка
     factory = convert_factory()
@@ -174,7 +172,7 @@ def test_convert_factory_convert_value_nomenclature_model():
     # Действие
     result = factory.convert_value(item)
 
-    # Проверка
+    # Проверки
     assert result["name"] == "Мука"
     assert result["full_name"] == "Мука пшеничная высший сорт"
     assert result["group"]["name"] == "Сырьё"
@@ -183,9 +181,7 @@ def test_convert_factory_convert_value_nomenclature_model():
 
 def test_convert_factory_convert_value_recipe_model():
     """
-    <summary>
     Проверка конвертации полной технологической карты через convert_value.
-    </summary>
     """
     # Подготовка
     factory = convert_factory()
@@ -194,20 +190,17 @@ def test_convert_factory_convert_value_recipe_model():
     # Действие
     result = factory.convert_value(recipe)
 
-    # Проверка
+    # Проверки
     assert "Пицца Маргарита" in result["name"]
     assert len(result["rows"]) > 0
     assert len(result["steps"]) > 0
     assert result["gross_weight"] > 0
     assert result["net_weight"] > 0
 
-# ─────────── Тесты составных структур и перечислений ───────────
 
 def test_convert_factory_convert_value_list():
     """
-    <summary>
     Проверка рекурсивной конвертации списка с примитивами и моделью.
-    </summary>
     """
     # Подготовка
     factory = convert_factory()
@@ -216,7 +209,7 @@ def test_convert_factory_convert_value_list():
     # Действие
     result = factory.convert_value([1, "текст", unit])
 
-    # Проверка
+    # Проверки
     assert result[0] == 1
     assert result[1] == "текст"
     assert result[2]["name"] == "грамм"
@@ -224,9 +217,7 @@ def test_convert_factory_convert_value_list():
 
 def test_convert_factory_convert_value_dict():
     """
-    <summary>
     Проверка рекурсивной конвертации словаря с вложенной моделью и перечислением.
-    </summary>
     """
     # Подготовка
     factory = convert_factory()
@@ -235,43 +226,43 @@ def test_convert_factory_convert_value_dict():
     # Действие
     result = factory.convert_value({"unit": unit, "format": report_type_enum.CSV})
 
-    # Проверка
+    # Проверки
     assert result["unit"]["name"] == "грамм"
     assert result["format"] == report_type_enum.CSV.value
 
 
 def test_convert_factory_convert_value_enum():
     """
-    <summary>
     Проверка конвертации перечисления в его значение.
-    </summary>
     """
     # Подготовка
     factory = convert_factory()
 
-    # Действие и проверка
-    assert factory.convert_value(report_type_enum.TXT) == report_type_enum.TXT.value
+    # Действие
+    result = factory.convert_value(report_type_enum.TXT)
+
+    # Проверки
+    assert result == report_type_enum.TXT.value
 
 
 def test_convert_factory_convert_value_unknown_type_raises():
     """
-    <summary>
     Проверка ошибки при попытке сериализовать неизвестный тип.
-    </summary>
     """
     # Подготовка
     factory = convert_factory()
 
-    # Действие и проверка
-    with pytest.raises(argument_exception):
+    # Действие
+    with pytest.raises(arguments_exception):
         factory.convert_value(object())
+
+    # Проверки
+    assert True
 
 
 def test_convert_factory_convert_value_enum_with_object_value():
     """
-    <summary>
     Проверка использования имени перечисления, если его значение не примитивное.
-    </summary>
     """
     # Подготовка
     class payload_enum(Enum):
@@ -279,5 +270,8 @@ def test_convert_factory_convert_value_enum_with_object_value():
 
     factory = convert_factory()
 
-    # Действие и проверка
-    assert factory.convert_value(payload_enum.DICT) == "DICT"
+    # Действие
+    result = factory.convert_value(payload_enum.DICT)
+
+    # Проверки
+    assert result == "DICT"

@@ -1,17 +1,15 @@
 from abc import ABC, abstractmethod
-from src.core.abstract_covertor import abstract_covertor
+from src.core.abstract_converter import abstract_converter
 
 
-class abstract_convertor_factory(ABC):
+class abstract_converter_factory(ABC):
     """
     Абстрактная фабрика конверторов.
     Определяет контракт для подбора конвертора по типу данных.
-    Используется для устранения циклических зависимостей между
-    reference_convertor и convert_factory.
     """
 
     @abstractmethod
-    def get_convertor(self, value_or_type: object) -> abstract_covertor:
+    def get_converter(self, value_or_type: object) -> abstract_converter:
         """
         Возвращает подходящий конвертор для переданного типа или значения.
 
@@ -26,6 +24,6 @@ class abstract_convertor_factory(ABC):
         Конвертирует значение в примитивный тип для сериализации.
 
         :param source: Исходное значение
-        :return: Примитивное значение (str, int, float, bool, dict, list)
+        :return: Сериализованное значение
         """
         raise NotImplementedError("Метод должен быть реализован в наследнике")

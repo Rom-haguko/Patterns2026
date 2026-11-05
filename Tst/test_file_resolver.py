@@ -1,28 +1,49 @@
-import pytest
 import os
-from src.core.file_resolver import FilePathResolver
+import pytest
+from src.core.file_resolver import file_path_resolver
+
 
 def test_resolve_returns_absolute_path_if_exists(tmp_path):
-    """Проверка: если передан абсолютный путь к существующему файлу, он возвращается без изменений."""
+    """
+    Проверка возврата абсолютного пути к существующему файлу без модификаций.
+    """
+    # Подготовка
     temp_file = tmp_path / "config.json"
-    temp_file.write_text("{}")
-    
-    resolved = FilePathResolver.resolve(str(temp_file), __file__)
+    temp_file.write_text("{}", encoding="utf-8")
+
+    # Действие
+    resolved = file_path_resolver.resolve(str(temp_file), __file__)
+
+    # Проверки
     assert resolved == str(temp_file)
 
+
 def test_resolve_finds_settings_in_project_root():
-    """Проверка: резолвер находит settings.json в корне проекта."""
-    resolved = FilePathResolver.resolve("settings.json", __file__)
-    
-    # Путь должен заканчиваться на settings.json
+    """
+    Проверка определения пути к файлу settings.json в корне проекта.
+    """
+    # Подготовка
+    target_file = "settings.json"
+
+    # Действие
+    resolved = file_path_resolver.resolve(target_file, __file__)
+
+    # Проверки
     assert resolved.endswith("settings.json")
-    # И файл должен существовать
     assert os.path.exists(resolved)
 
-def test_resolve_handles_typo_seetings():
-    """Проверка: если мы просим 'seetings.json', резолвер должен найти 'settings.json'."""
-    resolved = FilePathResolver.resolve("seetings.json", __file__)
-    
-    # Проверка
+
+def test_resolve_finds_relative_path_from_nested_caller():
+    """
+    Проверка корректного резолвинга относительного имени файла при вызове из вложенной директории.
+    """
+    # Подготовка
+    nested_caller = os.path.join(os.path.dirname(__file__), "sub", "caller.py")
+    target_file = "settings.json"
+
+    # Действие
+    resolved = file_path_resolver.resolve(target_file, nested_caller)
+
+    # Проверки
     assert resolved.endswith("settings.json")
-    assert os.path.exists(resolved)
+    assert os.path.isabs(resolved)

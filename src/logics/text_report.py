@@ -1,36 +1,38 @@
 from src.core.abstract_report import abstract_report
 from src.dtos.report_result_dto import report_result_dto
+import src.logics.report_data_mapper
 
-"""
-Реализация текстового представления отчета
-"""
+
 class text_report(abstract_report):
+    """
+    Реализация текстового представления отчета.
+    """
 
     @property
     def mimetype(self) -> str:
         """
-        MIME-тип для текстового формата
+        MIME-тип для текстового формата.
         """
         return "text/plain"
 
     @property
     def is_binary(self) -> bool:
         """
-        Флаг формирования бинарных данных для скачивания файла
+        Флаг формирования бинарных данных для скачивания файла.
         """
         return False
 
     @property
     def file_extension(self) -> str:
         """
-        Расширение файла текстового отчета
+        Расширение файла текстового отчета.
         """
         return "txt"
 
-    """
-    Переопределенный метод формирования отчета
-    """
     def build(self, source) -> report_result_dto:
+        """
+        Формирование текстового отчета по переданному источнику данных.
+        """
         data = self.prepare_data(source)
         lines = [data.title, " | ".join(data.headers)]
         for row in data.rows:

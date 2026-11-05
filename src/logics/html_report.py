@@ -1,36 +1,38 @@
 from src.core.abstract_report import abstract_report
 from src.dtos.report_result_dto import report_result_dto
+import src.logics.report_data_mapper
 
-"""
-Реализация отчета в формате HTML
-"""
+
 class html_report(abstract_report):
+    """
+    Реализация отчета в формате HTML.
+    """
 
     @property
     def mimetype(self) -> str:
         """
-        MIME-тип для формата HTML
+        MIME-тип для формата HTML.
         """
         return "text/html"
 
     @property
     def is_binary(self) -> bool:
         """
-        Флаг формирования бинарных данных для скачивания файла
+        Флаг формирования бинарных данных для скачивания файла.
         """
         return False
 
     @property
     def file_extension(self) -> str:
         """
-        Расширение файла HTML
+        Расширение файла HTML.
         """
         return "html"
 
-    """
-    Формирование отчета в формате HTML (структурированный текст)
-    """
     def build(self, source) -> report_result_dto:
+        """
+        Формирование отчета в формате HTML (структурированный текст).
+        """
         data = self.prepare_data(source)
         th_tags = "".join(f"\n        <th>{h}</th>" for h in data.headers)
         tr_tags = []
@@ -49,12 +51,12 @@ class html_report(abstract_report):
             "<!DOCTYPE html>\n"
             "<html>\n"
             "<head>\n"
-            '  <meta charset="utf-8">\n'
+            "  <meta charset=\"utf-8\">\n"
             f"  <title>{data.title}</title>\n"
             "</head>\n"
             "<body>\n"
             f"  <h1>{data.title}</h1>\n"
-            '  <table border="1">\n'
+            "  <table>\n"
             "    <thead>\n"
             f"      <tr>{th_tags}\n"
             "      </tr>\n"
@@ -65,6 +67,6 @@ class html_report(abstract_report):
             f"{footer_html}\n"
             "  </table>\n"
             "</body>\n"
-            "</html>"
+            "</html>\n"
         )
         return report_result_dto(text=content)

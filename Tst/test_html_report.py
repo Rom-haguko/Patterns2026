@@ -1,5 +1,5 @@
 import pytest
-from src.core.validator import argument_exception
+from src.core.exception import arguments_exception
 from src.logics.html_report import html_report
 from src.models.recipe_model import recipe_model
 from src.models.recipe_row_model import recipe_row_model
@@ -11,20 +11,21 @@ from src.dtos.report_result_dto import report_result_dto
 
 def test_success_build_html_report_for_recipe():
     """
-    <summary>
     Проверка формирования HTML отчёта по рецепту:
     результат должен содержать HTML разметку с заголовком и таблицей строк.
-    </summary>
     """
+    # Подготовка
     gram = range_model.create_gram()
     group = nomenclature_group_model.create_raw()
     nom = nomenclature_model.create("Базилик", "Базилик свежий", group, gram)
     row = recipe_row_model.create(nom, brutto=10.0, netto=8.0, range=gram)
     recipe = recipe_model.create(name="Пицца с базиликом", rows=[row])
-
     report = html_report()
+
+    # Действие
     result = report.build(recipe)
 
+    # Проверки
     assert isinstance(result, report_result_dto)
     assert result.text != ""
     assert result.binary == []
@@ -42,18 +43,19 @@ def test_success_build_html_report_for_recipe():
 
 def test_success_build_html_report_for_nomenclature():
     """
-    <summary>
     Проверка формирования HTML отчёта для номенклатуры:
     результат должен содержать HTML разметку с реквизитами номенклатуры.
-    </summary>
     """
+    # Подготовка
     gram = range_model.create_gram()
     group = nomenclature_group_model.create_raw()
     nom = nomenclature_model.create("Перец", "Перец черный молотый", group, gram)
-
     report = html_report()
+
+    # Действие
     result = report.build(nom)
 
+    # Проверки
     assert isinstance(result, report_result_dto)
     text = result.text
     assert "<h1>Номенклатура: Перец</h1>" in text
@@ -64,16 +66,17 @@ def test_success_build_html_report_for_nomenclature():
 
 def test_success_build_html_report_for_range():
     """
-    <summary>
     Проверка формирования HTML отчёта для единицы измерения:
     результат должен содержать HTML таблицу со свойствами единицы измерения.
-    </summary>
     """
+    # Подготовка
     gram = range_model.create_gram()
-
     report = html_report()
+
+    # Действие
     result = report.build(gram)
 
+    # Проверки
     assert isinstance(result, report_result_dto)
     text = result.text
     assert "<h1>Единица измерения: грамм</h1>" in text
@@ -83,10 +86,34 @@ def test_success_build_html_report_for_range():
 
 def test_error_build_html_report_with_invalid_source():
     """
-    <summary>
-    Проверка генерации исключения argument_exception при некорректном источнике.
-    </summary>
+    Проверка генерации исключения arguments_exception при некорректном источнике.
     """
+    # Подготовка
     report = html_report()
-    with pytest.raises(argument_exception):
-        report.build(["невалидный список"])
+    invalid_source = ["невалидный список"]
+
+    # Действие
+    with pytest.raises(arguments_exception) as exc_info:
+        report.build(invalid_source)
+
+    # Проверки
+    assert exc_info.value is not None
+
+
+def test_success_build_html_report_for_collection():
+    """
+    Проверка формирования HTML отчёта для коллекции сущностей.
+    """
+    # Подготовка
+    gram = range_model.create_gram()
+    kilo = range_model.create_kilogram()
+    report = html_report()
+
+    # Действие
+    result = report.build([gram, kilo])
+
+    # Проверки
+    assert isinstance(result, report_result_dto)
+    assert "<td>грамм</td>" in result.text
+    assert "<td>килограмм</td>" in result.text
+    assert "Всего записей: 2" in result.text

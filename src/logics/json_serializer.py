@@ -8,8 +8,6 @@ class json_serializer:
     Делегирует конвертацию фабрике конверторов.
     """
 
-    __factory: convert_factory = None
-
     def __init__(self, factory: convert_factory = None):
         """
         Инициализирует сериализатор с фабрикой конверторов.
@@ -17,8 +15,6 @@ class json_serializer:
         :param factory: Фабрика конверторов (опционально)
         """
         self.__factory = factory if factory is not None else convert_factory()
-
-    # ─────────── Методы сериализации ───────────
 
     def to_json(self, source: object, indent: int = 2) -> str:
         """

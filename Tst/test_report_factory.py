@@ -13,158 +13,207 @@ from src.models.settings_model import settings_model
 
 def test_success_create_report_factory():
     """
-    <summary>
-    Проверка успешного создания экземпляра фабрики отчётов.
-    </summary>
+    Проверка успешного создания экземпляра фабрики отчётов и доступности генераторов.
     """
+    # Подготовка
+    # (Инициализация фабрики без внешних зависимостей)
+
+    # Действие
     factory = report_factory()
+
+    # Проверки
     assert isinstance(factory, report_factory)
+    assert factory.settings is not None
+    assert isinstance(factory.create(report_type_enum.TXT), text_report)
 
 
 def test_factory_creates_text_report_for_txt_type():
     """
-    <summary>
     Проверка, что фабрика создаёт текстовый отчёт для типа TXT.
-    </summary>
     """
+    # Подготовка
     factory = report_factory()
+
+    # Действие
     report = factory.create(report_type_enum.TXT)
+
+    # Проверки
     assert isinstance(report, text_report)
     assert isinstance(report, abstract_report)
 
 
 def test_factory_creates_csv_report_for_csv_type():
     """
-    <summary>
     Проверка, что фабрика создаёт CSV отчёт для типа CSV.
-    </summary>
     """
+    # Подготовка
     factory = report_factory()
+
+    # Действие
     report = factory.create(report_type_enum.CSV)
+
+    # Проверки
     assert isinstance(report, csv_report)
     assert isinstance(report, abstract_report)
 
 
 def test_factory_creates_markdown_report_for_markdown_type():
     """
-    <summary>
     Проверка, что фабрика создаёт Markdown отчёт для типа MARKDOWN.
-    </summary>
     """
+    # Подготовка
     factory = report_factory()
+
+    # Действие
     report = factory.create(report_type_enum.MARKDOWN)
+
+    # Проверки
     assert isinstance(report, markdown_report)
     assert isinstance(report, abstract_report)
 
 
 def test_factory_creates_xml_report_for_xml_type():
     """
-    <summary>
     Проверка, что фабрика создаёт XML отчёт для типа XML.
-    </summary>
     """
+    # Подготовка
     factory = report_factory()
+
+    # Действие
     report = factory.create(report_type_enum.XML)
+
+    # Проверки
     assert isinstance(report, xml_report)
     assert isinstance(report, abstract_report)
 
 
 def test_factory_creates_html_report_for_html_type():
     """
-    <summary>
     Проверка, что фабрика создаёт HTML отчёт для типа HTML.
-    </summary>
     """
+    # Подготовка
     factory = report_factory()
+
+    # Действие
     report = factory.create(report_type_enum.HTML)
+
+    # Проверки
     assert isinstance(report, html_report)
     assert isinstance(report, abstract_report)
 
 
 def test_factory_create_with_string_type_names():
     """
-    <summary>
     Проверка создания отчётов по строковым именам форматов.
-    </summary>
     """
+    # Подготовка
     factory = report_factory()
-    assert isinstance(factory.create("TXT"), text_report)
-    assert isinstance(factory.create("CSV"), csv_report)
-    assert isinstance(factory.create("Markdown"), markdown_report)
-    assert isinstance(factory.create("XML"), xml_report)
-    assert isinstance(factory.create("HTML"), html_report)
+
+    # Действие
+    txt_rep = factory.create("TXT")
+    csv_rep = factory.create("CSV")
+    md_rep = factory.create("Markdown")
+    xml_rep = factory.create("XML")
+    html_rep = factory.create("HTML")
+
+    # Проверки
+    assert isinstance(txt_rep, text_report)
+    assert isinstance(csv_rep, csv_report)
+    assert isinstance(md_rep, markdown_report)
+    assert isinstance(xml_rep, xml_report)
+    assert isinstance(html_rep, html_report)
 
 
 def test_factory_create_returns_new_instance_each_time():
     """
-    <summary>
     Проверка, что каждый вызов create возвращает новый экземпляр отчёта.
-    </summary>
     """
+    # Подготовка
     factory = report_factory()
+
+    # Действие
     report1 = factory.create(report_type_enum.TXT)
     report2 = factory.create(report_type_enum.TXT)
+
+    # Проверки
     assert report1 is not report2
 
 
 def test_error_create_with_invalid_report_type():
     """
-    <summary>
     Проверка генерации исключения при передаче несуществующего типа отчёта.
-    </summary>
     """
+    # Подготовка
     factory = report_factory()
-    with pytest.raises(arguments_exception):
-        factory.create("несуществующий_тип")
+    invalid_format = "несуществующий_тип"
+
+    # Действие
+    with pytest.raises(arguments_exception) as exc_info:
+        factory.create(invalid_format)
+
+    # Проверки
+    assert exc_info.value is not None
 
 
 def test_factory_encapsulates_settings_via_constructor():
     """
-    <summary>
     Проверка инкапсуляции настроек в фабрику через конструктор.
-    </summary>
     """
+    # Подготовка
     settings = settings_model()
     settings.response_format = report_type_enum.CSV
+
+    # Действие
     factory = report_factory(settings=settings)
+
+    # Проверки
     assert factory.settings is settings
     assert factory.settings.response_format == report_type_enum.CSV
 
 
 def test_factory_settings_setter():
     """
-    <summary>
     Проверка установки настроек через свойство settings.
-    </summary>
     """
+    # Подготовка
     factory = report_factory()
     new_settings = settings_model()
     new_settings.response_format = report_type_enum.HTML
+
+    # Действие
     factory.settings = new_settings
+
+    # Проверки
     assert factory.settings is new_settings
 
 
 def test_factory_create_default_uses_encapsulated_settings():
     """
-    <summary>
-    Проверка, что метод create_default создаёт отчёт нужного типа
-    в зависимости от формата, заданного в настройках.
-    </summary>
+    Проверка создания отчёта по умолчанию в зависимости от формата в настройках.
     """
+    # Подготовка
     settings = settings_model()
-
     settings.response_format = report_type_enum.CSV
     factory = report_factory(settings=settings)
-    assert isinstance(factory.create_default(), csv_report)
+
+    # Действие
+    rep_csv = factory.create_default()
 
     settings.response_format = report_type_enum.MARKDOWN
-    assert isinstance(factory.create_default(), markdown_report)
+    rep_md = factory.create_default()
 
     settings.response_format = report_type_enum.XML
-    assert isinstance(factory.create_default(), xml_report)
+    rep_xml = factory.create_default()
 
     settings.response_format = report_type_enum.HTML
-    assert isinstance(factory.create_default(), html_report)
+    rep_html = factory.create_default()
 
     settings.response_format = report_type_enum.TXT
-    assert isinstance(factory.create_default(), text_report)
+    rep_txt = factory.create_default()
+
+    # Проверки
+    assert isinstance(rep_csv, csv_report)
+    assert isinstance(rep_md, markdown_report)
+    assert isinstance(rep_xml, xml_report)
+    assert isinstance(rep_html, html_report)
+    assert isinstance(rep_txt, text_report)

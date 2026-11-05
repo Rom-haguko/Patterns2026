@@ -1,7 +1,5 @@
-import os
-import re
 from src.core.abstract_model import abstract_model
-from src.core.exception import arguments_exception
+from src.core.exception import arguments_exception, operation_exception
 from src.models.recipe_row_model import recipe_row_model
 from src.models.recipe_step_model import recipe_step_model
 from src.models.nomenclature_model import nomenclature_model
@@ -69,64 +67,47 @@ class recipe_model(abstract_model):
         self.cooking_time = cooking_time
         self.description = description
 
-    # ─────────────────────────── Расчётные свойства веса ───────────────────────────
-
     @property
     def gross_weight(self) -> float:
         """
         Общий вес Брутто рецепта.
-        Рассчитывается рекурсивно с учетом "Блюда в блюде": если ингредиент является 
-        полуфабрикатом (имеет свой рецепт), его брутто рассчитывается пропорционально 
-        на основе рецепта полуфабриката.
+        Рассчитывается рекурсивно с учетом 'Блюда в блюде': если ингредиент является 
+        полуфабрикатом (имеет связанную технологическую карту), его брутто рассчитывается 
+        пропорционально на основе рецепта полуфабриката.
+        Включает обнаружение циклических зависимостей.
         """
-        def get_gross(rec_obj) -> float:
-            total = 0.0
-            for r in rec_obj.rows:
-                if r.nomenclature and getattr(r.nomenclature, 'recipe', None):
-                    # Это полуфабрикат! Спускаемся в его рецепт
-                    sub = r.nomenclature.recipe
-                    sub_net = sub.net_weight
-                    # Коэффициент масштабирования: сколько от выхода рецепта нам нужно
-                    factor = r.netto / sub_net if sub_net > 0 else 0
-                    total += get_gross(sub) * factor
-                else:
-                    # Простое сырьё
-                    total += r.brutto
-            return total
-            
+        def get_gross(rec_obj, visited: set[str] = None) -> float:
+            if visited is None:
+                visited = set()
+
+            rec_id = str(rec_obj.id)
+            if rec_id in visited:
+                raise operation_exception(f"Обнаружена циклическая зависимость в технологической карте: {rec_obj.name}")
+
+            visited.add(rec_id)
+            try:
+                total = 0.0
+                for r in rec_obj.rows:
+                    if r.nomenclature and getattr(r.nomenclature, "recipe", None):
+                        sub = r.nomenclature.recipe
+                        sub_net = sub.net_weight
+                        factor = r.netto / sub_net if sub_net > 0 else 0
+                        total += get_gross(sub, visited) * factor
+                    else:
+                        total += r.brutto
+                return total
+            finally:
+                visited.remove(rec_id)
+
         return round(get_gross(self), 4)
 
     @property
     def net_weight(self) -> float:
         """
         Общий вес Нетто рецепта.
-        Рассчитывается рекурсивно. Для полуфабрикатов нетто в блюде равно их весу в строке.
+        Суммирует чистый вес всех ингредиентов, входящих в состав технологической карты.
         """
-        def get_net(rec_obj) -> float:
-            total = 0.0
-            for r in rec_obj.rows:
-                if r.nomenclature and getattr(r.nomenclature, 'recipe', None):
-                    total += r.netto
-                else:
-                    total += r.netto
-            return total
-            
-        return round(get_net(self), 4)
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # ─────────────────────────── Управление ингредиентами ─────────────────────────
+        return round(sum(r.netto for r in self.__rows), 4)
 
     @property
     def rows(self) -> list:
@@ -165,8 +146,6 @@ class recipe_model(abstract_model):
             return True
         return False
 
-    # ─────────────────────────── Управление шагами приготовления ───────────────────
-
     @property
     def steps(self) -> list:
         """
@@ -198,8 +177,6 @@ class recipe_model(abstract_model):
             self.__steps.remove(step)
             return True
         return False
-
-    # ─────────────────────────── Прочие свойства ───────────────────────────────────
 
     @property
     def target_nomenclature(self) -> nomenclature_model:
@@ -294,8 +271,6 @@ class recipe_model(abstract_model):
         """
         self.__description = str(value).strip() if value is not None else ""
 
-    # ─────────────────────────── Проверки состава (полуфабрикаты / упаковка) ───────
-
     @property
     def semi_finished_items(self) -> list:
         """
@@ -339,8 +314,6 @@ class recipe_model(abstract_model):
         Флаг наличия упаковки в составе рецепта.
         """
         return len(self.packaging_items) > 0
-
-    # ─────────────────────────── Фабричные методы ─────────────────────────────────
 
     @staticmethod
     def create(
@@ -403,7 +376,7 @@ class recipe_model(abstract_model):
                 if item: return item
             if name == "грамм": return range_model.create_gram()
             if name == "миллилитр": return range_model.create_milliliter()
-            if name == "килограмм": return range_model.create_kilogramm()
+            if name == "килограмм": return range_model.create_kilogram()
             if name == "штука": return range_model.create_piece()
             return range_model.create(name)
 

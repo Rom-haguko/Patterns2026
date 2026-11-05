@@ -20,7 +20,6 @@ classDiagram
         -__data: dict
         -__is_loaded: bool
         +settings: settings_model
-        +setting: settings_model
         +is_loaded: bool
         +data: dict
         +__new__(cls) settings_manager

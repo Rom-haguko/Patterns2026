@@ -1,12 +1,13 @@
 from src.core.abstract_report import abstract_report
 from src.dtos.report_result_dto import report_result_dto
+import src.logics.report_data_mapper
 
-"""
-Реализация отчета в формате XML
-"""
+
 class xml_report(abstract_report):
+    """
+    Реализация отчета в формате XML.
+    """
 
-    # Словарь сопоставления наименований заголовков с XML тегами
     __tag_map = {
         "Наименование": "name",
         "Брутто": "brutto",
@@ -23,33 +24,33 @@ class xml_report(abstract_report):
     @property
     def mimetype(self) -> str:
         """
-        MIME-тип для формата XML
+        MIME-тип для формата XML.
         """
         return "application/xml"
 
     @property
     def is_binary(self) -> bool:
         """
-        Флаг формирования бинарных данных для скачивания файла
+        Флаг формирования бинарных данных для скачивания файла.
         """
         return False
 
     @property
     def file_extension(self) -> str:
         """
-        Расширение файла XML
+        Расширение файла XML.
         """
         return "xml"
 
-    """
-    Формирование отчета в формате XML (структурированный текст)
-    """
     def build(self, source) -> report_result_dto:
+        """
+        Формирование отчета в формате XML (структурированный текст).
+        """
         data = self.prepare_data(source)
         root_tag = getattr(source, "__class__", type(source)).__name__.replace("_model", "")
         if isinstance(source, list):
             root_tag = "report"
-            item_tag = source[0].__class__.__name__.replace("_model", "") if source else "item"
+            item_tag = getattr(source[0], "__class__", type(source[0])).__name__.replace("_model", "") if len(source) > 0 else "item"
         else:
             item_tag = "row" if hasattr(source, "rows") else root_tag
 
@@ -68,10 +69,9 @@ class xml_report(abstract_report):
             else:
                 rows_xml.append(f"    <{item_tag}>\n{cols_str}\n    </{item_tag}>")
 
-        if item_tag == root_tag and len(rows_xml) == 1:
-            content = '<?xml version="1.0" encoding="utf-8"?>\n' + rows_xml[0]
-        else:
-            rows_block = "\n".join(rows_xml)
+        rows_block = "\n".join(rows_xml)
+
+        if hasattr(source, "rows"):
             content = (
                 '<?xml version="1.0" encoding="utf-8"?>\n'
                 f"<{root_tag}>\n"
@@ -80,7 +80,19 @@ class xml_report(abstract_report):
                 "  <rows>\n"
                 f"{rows_block}\n"
                 "  </rows>\n"
-                f"</{root_tag}>"
+                f"</{root_tag}>\n"
+            )
+        elif isinstance(source, list):
+            content = (
+                '<?xml version="1.0" encoding="utf-8"?>\n'
+                f"<{root_tag}>\n"
+                f"{rows_block}\n"
+                f"</{root_tag}>\n"
+            )
+        else:
+            content = (
+                '<?xml version="1.0" encoding="utf-8"?>\n'
+                f"{rows_block}\n"
             )
 
         return report_result_dto(text=content)

@@ -53,8 +53,6 @@ class recipe_row_model(abstract_model):
         elif nomenclature is not None and getattr(nomenclature, "range", None) is not None:
             self.range = nomenclature.range
 
-    # ─────────────────────────── Свойства и валидация ─────────────────────────────
-
     @property
     def nomenclature(self) -> nomenclature_model:
         """
@@ -92,9 +90,6 @@ class recipe_row_model(abstract_model):
 
         self.__brutto = float(value)
 
-
-
-
     @property
     def netto(self) -> float:
         """
@@ -115,9 +110,6 @@ class recipe_row_model(abstract_model):
 
         self.__netto = float(value)
 
-
-
-
     @property
     def range(self) -> range_model:
         """
@@ -134,10 +126,6 @@ class recipe_row_model(abstract_model):
             raise arguments_exception("range", "Единица измерения должна быть объектом range_model")
 
         self.__range = value
-
-    
-
-    # ─────────────────────────── Фабричные методы ─────────────────────────────────
 
     @staticmethod
     def create(

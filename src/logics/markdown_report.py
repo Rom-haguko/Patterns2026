@@ -1,36 +1,38 @@
 from src.core.abstract_report import abstract_report
 from src.dtos.report_result_dto import report_result_dto
+import src.logics.report_data_mapper
 
-"""
-Реализация отчета в формате Markdown
-"""
+
 class markdown_report(abstract_report):
+    """
+    Реализация отчета в формате Markdown.
+    """
 
     @property
     def mimetype(self) -> str:
         """
-        MIME-тип для формата Markdown
+        MIME-тип для формата Markdown.
         """
         return "text/markdown"
 
     @property
     def is_binary(self) -> bool:
         """
-        Флаг формирования бинарных данных для скачивания файла
+        Флаг формирования бинарных данных для скачивания файла.
         """
         return True
 
     @property
     def file_extension(self) -> str:
         """
-        Расширение файла Markdown
+        Расширение файла Markdown.
         """
         return "md"
 
-    """
-    Формирование отчета в формате Markdown (бинарные данные)
-    """
     def build(self, source) -> report_result_dto:
+        """
+        Формирование отчета в формате Markdown (бинарные данные).
+        """
         data = self.prepare_data(source)
         lines = []
         if data.title:

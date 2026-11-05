@@ -38,9 +38,7 @@ classDiagram
         -__conversion_factor: float
         -__base_range: range_model
         +conversion_factor: float
-        +coefficient: float
         +base_range: range_model
-        +base: range_model
     }
 
     class nomenclature_group_model {

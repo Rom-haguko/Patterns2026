@@ -51,8 +51,6 @@ classDiagram
         +create(...) recipe_model$
         +create_pizza_margarita(...) recipe_model$
         +create_pizza_with_packaging(...) recipe_model$
-        +from_markdown(markdown_text: str) recipe_model$
-        +from_file(file_path: str) recipe_model$
     }
 
     class recipe_row_model {
@@ -62,11 +60,8 @@ classDiagram
         -__range: range_model
         +nomenclature: nomenclature_model
         +brutto: float
-        +gross: float
         +netto: float
-        +net: float
         +range: range_model
-        +unit: range_model
         +create(...) recipe_row_model$
     }
 
@@ -85,9 +80,11 @@ classDiagram
         -__full_name: str
         -__group: nomenclature_group_model
         -__range: range_model
+        -__recipe: recipe_model
         +full_name: str
         +group: nomenclature_group_model
         +range: range_model
+        +recipe: recipe_model
         +create(...) nomenclature_model$
     }
 
@@ -106,7 +103,7 @@ classDiagram
         +base_range: range_model
         +create(...) range_model$
         +create_gram() range_model$
-        +create_kilogramm() range_model$
+        +create_kilogram() range_model$
         +create_milliliter() range_model$
         +create_liter() range_model$
         +create_piece() range_model$
@@ -115,7 +112,14 @@ classDiagram
     class storage_manager {
         -__data: dict
         +recipe_key() str$
+        +nomenclature_key() str$
+        +range_key() str$
+        +storage_key() str$
+        +group_key() str$
         +get(key: str) list
+        +get_by_type(entity_type: str) list
+        +get_by_type_and_code(entity_type: str, code: str) object
+        +export_all_to_json(file_path: str) bool
         +add(key: str, item: object) bool
         +convert() bool
         -_build_recipes() None

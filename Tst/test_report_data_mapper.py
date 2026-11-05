@@ -1,70 +1,73 @@
 from src.logics.report_data_mapper import report_data_mapper
-from src.core.entity_model import entity_model
+from src.core.abstract_model import abstract_model
 from src.models.range_model import range_model
+from src.models.storage_model import storage_model
+from src.models.organization_model import organization_model
+from src.models.nomenclature_group_model import nomenclature_group_model
+
+
+class test_model(abstract_model):
+    """
+    Тестовая сущность для проверки абстрактного маппера данных.
+    """
+    def __init__(self, name: str = None):
+        super().__init__(name=name)
 
 
 def test_report_data_mapper_build_title():
     """
-    <summary>
     Проверка формирования заголовка отчета методом _build_title.
-    </summary>
     """
     # Подготовка
-    entity = entity_model(name="Тестовая сущность")
+    entity = test_model(name="Тестовая сущность")
 
     # Действие
     title = report_data_mapper._build_title(entity)
 
-    # Проверка
+    # Проверки
     assert title == "Тестовая сущность"
 
 
 def test_report_data_mapper_build_table():
     """
-    <summary>
     Проверка формирования таблицы отчета методом _build_table.
-    </summary>
     """
     # Подготовка
-    entity = entity_model(name="Тестовая сущность")
+    entity = test_model(name="Тестовая сущность")
 
     # Действие
     headers, rows = report_data_mapper._build_table(entity)
 
-    # Проверка
+    # Проверки
     assert headers == ["Код", "Наименование"]
     assert rows == [[entity.id, "Тестовая сущность"]]
 
 
 def test_report_data_mapper_build_footer():
     """
-    <summary>
     Проверка формирования подвала отчета методом _build_footer.
-    </summary>
     """
     # Подготовка
-    entity = entity_model(name="Тестовая сущность")
+    entity = test_model(name="Тестовая сущность")
 
     # Действие
     footer = report_data_mapper._build_footer(entity)
 
-    # Проверка
+    # Проверки
     assert footer == ""
 
 
 def test_report_data_mapper_default_mapper():
     """
-    <summary>
     Проверка маппера по умолчанию через сборку из трех частей.
-    </summary>
     """
     # Подготовка
-    entity = entity_model(name="Объект")
+    entity = test_model(name="Объект")
 
     # Действие
     dto = report_data_mapper._default_mapper(entity)
 
-    # Проверка
+    # Проверки
     assert dto.title == "Объект"
     assert dto.headers == ["Код", "Наименование"]
     assert dto.rows == [[entity.id, "Объект"]]
@@ -73,22 +76,21 @@ def test_report_data_mapper_default_mapper():
 
 def test_report_data_mapper_none_returns_empty_dto():
     """
-    <summary>
     Проверка возврата пустого DTO при передаче None.
-    </summary>
     """
-    # Действие
-    dto = report_data_mapper.to_dto(None)
+    # Подготовка
+    source = None
 
-    # Проверка
+    # Действие
+    dto = report_data_mapper.to_dto(source)
+
+    # Проверки
     assert dto.title == "Пустой отчет"
 
 
 def test_report_data_mapper_to_collection_dto():
     """
-    <summary>
     Проверка формирования DTO для коллекции сущностей.
-    </summary>
     """
     # Подготовка
     units = [range_model.create_gram(), range_model.create_piece()]
@@ -96,7 +98,30 @@ def test_report_data_mapper_to_collection_dto():
     # Действие
     dto = report_data_mapper.to_collection_dto(units)
 
-    # Проверка
+    # Проверки
     assert "range_model" in dto.title
     assert len(dto.rows) == 2
     assert "Всего записей: 2" in dto.footer
+
+
+def test_report_data_mapper_storage_and_organization_and_group():
+    """
+    Проверка специализированных мапперов storage_model, organization_model, nomenclature_group_model.
+    """
+    # Подготовка
+    st = storage_model.create("Склад №1", "Адрес 1")
+    org = organization_model("ООО Тест", "7701987654", "044525999", "40702810938000005678", "ООО")
+    grp = nomenclature_group_model.create("Сырьё")
+
+    # Действие
+    st_dto = report_data_mapper.to_dto(st)
+    org_dto = report_data_mapper.to_dto(org)
+    grp_dto = report_data_mapper.to_dto(grp)
+
+    # Проверки
+    assert st_dto.headers == ["Код", "Наименование", "Адрес"]
+    assert st_dto.rows[0][1] == "Склад №1"
+    assert "ИНН" in org_dto.headers
+    assert org_dto.rows[0][1] == "ООО Тест"
+    assert grp_dto.headers == ["Код", "Наименование"]
+    assert grp_dto.rows[0][1] == "Сырьё"

@@ -1,29 +1,35 @@
-from src.core.entity_model import entity_model
 from src.core.validator import validator
 
-"""
-Модель для хранения результата формирования отчета
-"""
-class report_result_dto(entity_model):
-    __text: str = ""
-    __binary: list
 
-    def __init__(self, text: str = "", binary: list = []):
-        self.__text = text if len(binary) == 0 else ""
-        self.__binary = binary if len(text.strip()) == 0 else []
+class report_result_dto:
+    """
+    Модель для хранения результата формирования отчета (DTO).
+    Инкапсулирует либо текстовое, либо бинарное представление результата.
+    """
 
-    """
-    Текстовый результат
-    """
+    def __init__(self, text: str = "", binary: list = None):
+        """
+        Инициализирует результат генерации отчета.
+
+        :param text: Текстовые данные отчета
+        :param binary: Бинарные данные отчета (список байтов или чисел)
+        """
+        binary_val = binary if binary is not None else []
+        self.__text: str = text if len(binary_val) == 0 else ""
+        self.__binary: list = binary_val if len(text.strip()) == 0 else []
+
     @property
     def text(self) -> str:
+        """
+        Текстовый результат формирования отчета.
+        """
         return self.__text
 
-    """
-    Бинарный результат
-    """
     @property
     def binary(self) -> list:
+        """
+        Бинарный результат формирования отчета.
+        """
         return self.__binary
 
     @text.setter

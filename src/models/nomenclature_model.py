@@ -14,7 +14,7 @@ class nomenclature_model(abstract_model):
     # Предельная допустимая длина для развернутого наименования
     __max_full_name_length = 255
 
-    def __init__(self, name: str = "", full_name: str = "", group=None, range=None):
+    def __init__(self, name: str = "", full_name: str = "", group=None, range=None, recipe=None):
         """
         Конструктор номенклатуры.
 
@@ -22,6 +22,7 @@ class nomenclature_model(abstract_model):
         :param full_name: Полное наименование (до 255 символов)
         :param group: Категория номенклатуры (объект nomenclature_group_model)
         :param range: Единица измерения (объект range_model)
+        :param recipe: Технологическая карта (рецепт) для полуфабриката
         """
         super().__init__()
         self.__recipe = None
@@ -29,6 +30,8 @@ class nomenclature_model(abstract_model):
         self.full_name = full_name
         self.group = group
         self.range = range
+        if recipe is not None:
+            self.recipe = recipe
 
     @property
     def full_name(self) -> str:
@@ -87,7 +90,7 @@ class nomenclature_model(abstract_model):
         self.__range = value
 
     @staticmethod
-    def create(name: str = "", full_name: str = "", group=None, range=None) -> 'nomenclature_model':
+    def create(name: str = "", full_name: str = "", group=None, range=None, recipe=None) -> 'nomenclature_model':
         """
         Фабричный метод создания номенклатурной позиции.
 
@@ -95,9 +98,10 @@ class nomenclature_model(abstract_model):
         :param full_name: Полное наименование (до 255 символов)
         :param group: Категория номенклатуры (nomenclature_group_model)
         :param range: Единица измерения (range_model)
+        :param recipe: Технологическая карта (recipe_model)
         :return: Экземпляр nomenclature_model
         """
-        return nomenclature_model(name=name, full_name=full_name, group=group, range=range)
+        return nomenclature_model(name=name, full_name=full_name, group=group, range=range, recipe=recipe)
 
     @property
     def recipe(self):
@@ -113,10 +117,9 @@ class nomenclature_model(abstract_model):
         Устанавливает рецепт для данной номенклатуры.
         """
         if value is not None:
-            # Локальный импорт нужен, чтобы не создавать циклическую зависимость моделей
-            from src.models.recipe_model import recipe_model
-
-            if not isinstance(value, recipe_model):
+            val_cls = getattr(value, "__class__", None)
+            is_valid_recipe = val_cls is not None and val_cls.__name__ == "recipe_model" and val_cls.__module__.endswith("recipe_model")
+            if not is_valid_recipe:
                 raise arguments_exception("recipe", "Рецепт должен быть экземпляром recipe_model")
         self.__recipe = value
 

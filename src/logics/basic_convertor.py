@@ -1,13 +1,11 @@
-from src.core.abstract_covertor import abstract_covertor
-from src.core.validator import argument_exception
+from src.core.abstract_converter import abstract_converter
+from src.core.exception import arguments_exception
 
 
-class basic_convertor(abstract_covertor):
+class basic_convertor(abstract_converter):
     """
-    Конвертор простых типов данных: числа (int, float) и строки (str).
+    Конвертор простых типов данных: числа (int, float), строки (str) и булевы флаги (bool).
     """
-
-    # ─────────── Методы конвертации ───────────
 
     def convert(self, field: str, value: object) -> dict:
         """
@@ -18,9 +16,9 @@ class basic_convertor(abstract_covertor):
         :return: Словарь формата {поле: значение}
         """
         if not isinstance(field, str) or not field.strip():
-            raise argument_exception("Наименование поля должно быть непустой строкой")
+            raise arguments_exception("field", "Наименование поля должно быть непустой строкой")
 
         if not isinstance(value, (int, float, str, bool)):
-            raise argument_exception(f"Некорректный тип для basic_convertor: {type(value)}")
+            raise arguments_exception("value", f"Некорректный тип для basic_convertor: {type(value)}")
 
         return {field.strip(): value}

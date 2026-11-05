@@ -46,7 +46,6 @@ class range_model(abstract_model):
 
         self.__conversion_factor = value
 
-
     @property
     def base_range(self):
         """
@@ -64,6 +63,27 @@ class range_model(abstract_model):
             raise arguments_exception("base_range", "Базовая единица должна являться объектом range_model")
 
         self.__base_range = value
+
+    @property
+    def total_conversion_factor(self) -> float:
+        """
+        Полный коэффициент пересчёта до корневой базовой единицы измерения.
+        """
+        factor = float(self.conversion_factor)
+        current = self.base_range
+        while current is not None:
+            factor *= float(current.conversion_factor)
+            current = current.base_range
+        return factor
+
+    def to_base(self, value: float) -> float:
+        """
+        Пересчёт количества в базовую единицу измерения.
+
+        :param value: Исходное количество в текущих единицах
+        :return: Количество в базовых единицах измерения
+        """
+        return float(value) * self.total_conversion_factor
 
     @staticmethod
     def create(name: str = "", conversion_factor: float = 1, base_range=None) -> 'range_model':
@@ -85,13 +105,12 @@ class range_model(abstract_model):
         return range_model(name="грамм", conversion_factor=1)
 
     @staticmethod
-    def create_kilogramm() -> 'range_model':
+    def create_kilogram() -> 'range_model':
         """
         Фабричный метод для создания связки 'грамм -> килограмм'.
         """
-        gramm = range_model.create_gram()
-        result = range_model(name="килограмм", conversion_factor=1000, base_range=gramm)
-        return result
+        gram = range_model.create_gram()
+        return range_model(name="килограмм", conversion_factor=1000, base_range=gram)
 
     @staticmethod
     def create_milliliter() -> 'range_model':
@@ -114,4 +133,3 @@ class range_model(abstract_model):
         Фабричный метод создания единицы измерения 'штука'.
         """
         return range_model(name="штука", conversion_factor=1)
-

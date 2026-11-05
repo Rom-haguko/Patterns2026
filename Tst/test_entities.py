@@ -5,9 +5,7 @@ from src.core.exception import arguments_exception
 
 class test_entity(abstract_model):
     """
-    <summary>
     Вспомогательный тестовый класс для проверки базовой функциональности абстрактного класса abstract_model.
-    </summary>
     """
     def __init__(self, name: str = None):
         super().__init__(name=name)
@@ -15,9 +13,7 @@ class test_entity(abstract_model):
 
 def test_abstract_model_get_id_not_null():
     """
-    <summary>
     Проверка генерации идентификатора: при создании объекта свойство id не должно быть пустым.
-    </summary>
     """
     # Подготовка
     entity = test_entity()
@@ -25,15 +21,13 @@ def test_abstract_model_get_id_not_null():
     # Действие
     result = entity.id
 
-    # Проверка
+    # Проверки
     assert result != ""
 
 
 def test_abstract_model_id_is_unique():
     """
-    <summary>
     Проверка уникальности идентификаторов: два созданных экземпляра должны иметь различные id.
-    </summary>
     """
     # Подготовка
     entity1 = test_entity(name="t1")
@@ -42,15 +36,13 @@ def test_abstract_model_id_is_unique():
     # Действие
     is_unique = entity1.id != entity2.id
 
-    # Проверка
+    # Проверки
     assert is_unique
 
 
 def test_abstract_model_id_is_equal():
     """
-    <summary>
     Проверка сравнения сущностей: объекты с одинаковым идентификатором id считаются равными.
-    </summary>
     """
     # Подготовка
     entity1 = test_entity(name="t1")
@@ -61,31 +53,51 @@ def test_abstract_model_id_is_equal():
     entity1.id = custom_id
     entity2.id = custom_id
 
-    # Проверка
+    # Проверки
     assert entity1 == entity2
 
 
-def test_abstract_model_invalid_name_raises_error():
+def test_abstract_model_init_whitespace_name_raises():
     """
-    <summary>
-    Проверка валидации наименования: передача пустой строки, строки из пробелов или сброс имени вызывают arguments_exception.
-    </summary>
+    Проверка валидации: передача строки из пробелов при инициализации вызывает arguments_exception.
     """
-    # Подготовка: тестовые некорректные значения
+    # Подготовка
     whitespace_name = "   "
-    empty_name = ""
 
-    # Действие & Проверка: инициализация с именем из одних пробелов
-    with pytest.raises(arguments_exception):
+    # Действие
+    with pytest.raises(arguments_exception) as exc_info:
         test_entity(name=whitespace_name)
 
-    # Действие & Проверка: инициализация с пустым именем
-    with pytest.raises(arguments_exception):
+    # Проверки
+    assert exc_info.value is not None
+
+
+def test_abstract_model_init_empty_name_raises():
+    """
+    Проверка валидации: передача пустой строки при инициализации вызывает arguments_exception.
+    """
+    # Подготовка
+    empty_name = ""
+
+    # Действие
+    with pytest.raises(arguments_exception) as exc_info:
         test_entity(name=empty_name)
 
-    # Подготовка: объект с корректным начальным именем
-    entity = test_entity(name="Корректное имя")
+    # Проверки
+    assert exc_info.value is not None
 
-    # Действие & Проверка: попытка установить пустое имя через сеттер
-    with pytest.raises(arguments_exception):
+
+def test_abstract_model_setter_empty_name_raises():
+    """
+    Проверка валидации: попытка установить пустое имя через сеттер вызывает arguments_exception.
+    """
+    # Подготовка
+    entity = test_entity(name="Корректное имя")
+    empty_name = ""
+
+    # Действие
+    with pytest.raises(arguments_exception) as exc_info:
         entity.name = empty_name
+
+    # Проверки
+    assert exc_info.value is not None

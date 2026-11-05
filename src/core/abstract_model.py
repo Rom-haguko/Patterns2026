@@ -1,7 +1,6 @@
 from abc import ABC
 from uuid import uuid4
 from src.core.exception import arguments_exception
-from src.dtos.report_data_dto import report_data_dto
 
 
 class abstract_model(ABC):

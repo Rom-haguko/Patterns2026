@@ -1,5 +1,5 @@
 import pytest
-from src.core.validator import argument_exception
+from src.core.exception import arguments_exception
 from src.logics.xml_report import xml_report
 from src.models.recipe_model import recipe_model
 from src.models.recipe_row_model import recipe_row_model
@@ -11,20 +11,21 @@ from src.dtos.report_result_dto import report_result_dto
 
 def test_success_build_xml_report_for_recipe():
     """
-    <summary>
     Проверка формирования XML отчёта по рецепту:
     результат должен содержать структурированный XML с тегами recipe, rows, row.
-    </summary>
     """
+    # Подготовка
     gram = range_model.create_gram()
     group = nomenclature_group_model.create_raw()
     nom = nomenclature_model.create("Томаты", "Томаты свежие", group, gram)
     row = recipe_row_model.create(nom, brutto=120.0, netto=100.0, range=gram)
     recipe = recipe_model.create(name="Соус", rows=[row])
-
     report = xml_report()
+
+    # Действие
     result = report.build(recipe)
 
+    # Проверки
     assert isinstance(result, report_result_dto)
     assert result.text != ""
     assert result.binary == []
@@ -43,18 +44,19 @@ def test_success_build_xml_report_for_recipe():
 
 def test_success_build_xml_report_for_nomenclature():
     """
-    <summary>
     Проверка формирования XML отчёта для номенклатуры:
     результат должен содержать теги nomenclature, id, name, full_name, group, range.
-    </summary>
     """
+    # Подготовка
     gram = range_model.create_gram()
     group = nomenclature_group_model.create_raw()
     nom = nomenclature_model.create("Масло", "Масло оливковое", group, gram)
-
     report = xml_report()
+
+    # Действие
     result = report.build(nom)
 
+    # Проверки
     assert isinstance(result, report_result_dto)
     text = result.text
     assert "<nomenclature>" in text
@@ -68,16 +70,17 @@ def test_success_build_xml_report_for_nomenclature():
 
 def test_success_build_xml_report_for_range():
     """
-    <summary>
     Проверка формирования XML отчёта для единицы измерения:
     результат должен содержать теги range, id, name, conversion_factor, base_range.
-    </summary>
     """
+    # Подготовка
     piece = range_model.create_piece()
-
     report = xml_report()
+
+    # Действие
     result = report.build(piece)
 
+    # Проверки
     assert isinstance(result, report_result_dto)
     text = result.text
     assert "<range>" in text
@@ -89,10 +92,37 @@ def test_success_build_xml_report_for_range():
 
 def test_error_build_xml_report_with_invalid_source():
     """
-    <summary>
-    Проверка генерации исключения argument_exception при некорректном источнике.
-    </summary>
+    Проверка генерации исключения arguments_exception при некорректном источнике.
     """
+    # Подготовка
     report = xml_report()
-    with pytest.raises(argument_exception):
-        report.build(None)
+    invalid_source = None
+
+    # Действие
+    with pytest.raises(arguments_exception) as exc_info:
+        report.build(invalid_source)
+
+    # Проверки
+    assert exc_info.value is not None
+
+
+def test_success_build_xml_report_for_collection():
+    """
+    Проверка формирования XML отчёта для коллекции сущностей.
+    """
+    # Подготовка
+    gram = range_model.create_gram()
+    piece = range_model.create_piece()
+    report = xml_report()
+
+    # Действие
+    result = report.build([gram, piece])
+
+    # Проверки
+    assert isinstance(result, report_result_dto)
+    text = result.text
+    assert "<report>" in text
+    assert "<range>" in text
+    assert "<name>грамм</name>" in text
+    assert "<name>штука</name>" in text
+    assert "</report>" in text

@@ -10,7 +10,16 @@ class arguments_exception(Exception):
         self.__field = str(field).strip()
         self.__message = str(message).strip()
         self.__stack_trace = str(stack_trace).strip()
-        super().__init__(f"Ошибка аргумента '{self.__field}': {self.__message}")
+
+        if self.__field and self.__message:
+            full_msg = f"Ошибка аргумента '{self.__field}': {self.__message}"
+        elif self.__field:
+            full_msg = self.__field
+        elif self.__message:
+            full_msg = self.__message
+        else:
+            full_msg = "Ошибка валидации аргумента"
+        super().__init__(full_msg)
 
     @property
     def field(self) -> str:

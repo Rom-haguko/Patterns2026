@@ -42,21 +42,18 @@ class report_data_mapper:
         if not entities:
             return report_data_dto(title="Пустой отчет")
 
-        first = entities[0]
-        first_dto = cls.to_dto(first)
-        all_rows = []
-        for item in entities:
+        first_dto = cls.to_dto(entities[0])
+        all_rows = list(first_dto.rows)
+        for item in entities[1:]:
             item_dto = cls.to_dto(item)
             all_rows.extend(item_dto.rows)
 
         return report_data_dto(
-            title=f"Список {first.__class__.__name__}",
+            title=f"Список {entities[0].__class__.__name__}",
             headers=first_dto.headers,
             rows=all_rows,
             footer=f"Всего записей: {len(all_rows)}"
         )
-
-    # ─────────── Методы формирования частей отчета ───────────
 
     @staticmethod
     def _build_title(entity) -> str:
@@ -96,8 +93,6 @@ class report_data_mapper:
             footer=footer
         )
 
-
-# ─────────── Регистрация специализированных мапперов ───────────
 
 def _map_nomenclature(entity: nomenclature_model) -> report_data_dto:
     headers = ["Код", "Наименование", "Полное наименование", "Группа", "Единица измерения"]
@@ -170,3 +165,7 @@ report_data_mapper.register(recipe_model, _map_recipe)
 report_data_mapper.register(storage_model, _map_storage)
 report_data_mapper.register(organization_model, _map_organization)
 report_data_mapper.register(nomenclature_group_model, _map_nomenclature_group)
+
+# Регистрация в базовом абстрактном отчете (Clean Architecture / DIP)
+from src.core.abstract_report import abstract_report
+abstract_report.set_data_mapper(report_data_mapper)

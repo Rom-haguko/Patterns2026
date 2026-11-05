@@ -38,10 +38,10 @@ def get_report_by_query():
     """
     format_name = flask.request.args.get("format")
     entity_type = flask.request.args.get("type")
-    entity_code = flask.request.args.get("code") or flask.request.args.get("id")
+    entity_code = flask.request.args.get("code")
 
     if not entity_type or not entity_code:
-        return {"error": "Параметры 'type' и 'code' (или 'id') обязательны"}, 400
+        return {"error": "Параметры 'type' и 'code' обязательны"}, 400
 
     return service.get_report_response(entity_type, entity_code, format_name)
 
