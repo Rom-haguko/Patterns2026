@@ -171,6 +171,34 @@ class storage_manager(abstract_manager):
         serializer.to_json_file(all_data, file_path)
         return True
 
+    def import_all_from_json(self, file_path: str, clear_existing: bool = False) -> bool:
+        """
+        Импортирует коллекции доменных объектов из JSON-файла.
+
+        :param file_path: Путь к файлу с данными
+        :param clear_existing: Флаг очистки существующих данных перед загрузкой
+        :return: True при успешном импорте
+        """
+        from src.logics.json_deserializer import json_deserializer
+
+        deserializer = json_deserializer()
+        imported = deserializer.from_json_file(file_path)
+
+        if not isinstance(imported, dict):
+            return False
+
+        if clear_existing:
+            for collection in self.data.values():
+                if isinstance(collection, list):
+                    collection.clear()
+
+        for key, items in imported.items():
+            if isinstance(items, list):
+                for item in items:
+                    self.add(key, item)
+
+        return True
+
     def add(self, key: str, item: object) -> bool:
         """
         Добавляет объект в коллекцию по ключу, если он ещё не присутствует.

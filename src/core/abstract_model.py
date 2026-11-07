@@ -62,5 +62,12 @@ class abstract_model(ABC):
 
         self._name = value_clean
 
+    @property
+    def type(self) -> str:
+        """
+        Полное наименование класса (включая модули).
+        """
+        return f"{self.__class__.__module__}.{self.__class__.__qualname__}"
+
 
    
