@@ -152,3 +152,54 @@ class recipe_row_model(abstract_model):
             range=range,
             name=name
         )
+
+    @classmethod
+    def create_from_dict(cls, data: dict) -> "recipe_row_model":
+        """
+        Фабричный метод создания строки технологической карты из словаря.
+
+        :param data: Словарь с данными строки
+        :return: Экземпляр recipe_row_model
+        """
+        if not isinstance(data, dict):
+            raise arguments_exception("data", "Для создания recipe_row_model требуется словарь")
+
+        from src.logics.deserialization_context import deserialization_context
+
+        context = deserialization_context()
+        entity_id = str(data.get("id", "")).strip()
+        if entity_id:
+            cached = context.get(entity_id)
+            if cached is not None:
+                return cached
+
+        nom_data = data.get("nomenclature")
+        nomenclature = None
+        if isinstance(nom_data, dict):
+            nomenclature = nomenclature_model.create_from_dict(nom_data)
+        elif isinstance(nom_data, nomenclature_model):
+            nomenclature = nom_data
+
+        range_data = data.get("range")
+        row_range = None
+        if isinstance(range_data, dict):
+            row_range = range_model.create_from_dict(range_data)
+        elif isinstance(range_data, range_model):
+            row_range = range_data
+
+        brutto = float(data.get("brutto", 0.0))
+        netto = float(data.get("netto", 0.0))
+        name = data.get("name")
+
+        instance = cls(
+            nomenclature=nomenclature,
+            brutto=brutto,
+            netto=netto,
+            range=row_range,
+            name=name
+        )
+        if entity_id:
+            instance.id = entity_id
+            context.register(instance)
+
+        return instance

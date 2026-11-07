@@ -96,3 +96,47 @@ class settings_model(abstract_model):
             return
 
         raise arguments_exception(field="response_format", message=f"Некорректный тип для формата ответа: {type(value)}")
+
+    @classmethod
+    def create_from_dict(cls, data: dict) -> "settings_model":
+        """
+        Фабричный метод создания модели настроек из словаря.
+
+        :param data: Словарь с данными настроек
+        :return: Экземпляр settings_model
+        """
+        if not isinstance(data, dict):
+            raise arguments_exception("data", "Для создания settings_model требуется словарь")
+
+        from src.logics.deserialization_context import deserialization_context
+
+        context = deserialization_context()
+        entity_id = str(data.get("id", "")).strip()
+        if entity_id:
+            cached = context.get(entity_id)
+            if cached is not None:
+                return cached
+
+        name = data.get("name")
+        instance = cls(name=name)
+        if entity_id:
+            instance.id = entity_id
+            context.register(instance)
+
+        instance.boss_name = data.get("boss_name", "")
+        instance.account_name = data.get("account_name", "")
+
+        company_data = data.get("company")
+        if isinstance(company_data, dict):
+            instance.company = organization_model.create_from_dict(company_data)
+        elif isinstance(company_data, organization_model):
+            instance.company = company_data
+
+        resp_format = data.get("response_format")
+        if resp_format is not None:
+            if isinstance(resp_format, int):
+                instance.response_format = report_type_enum(resp_format)
+            else:
+                instance.response_format = resp_format
+
+        return instance

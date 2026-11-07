@@ -18,6 +18,16 @@ from src.models.settings_model import settings_model
 from src.models.storage_model import storage_model
 
 
+@pytest.fixture(autouse=True)
+def reset_context():
+    """
+    Очищает реестр идентичности перед и после каждого теста для изоляции.
+    """
+    deserialization_context().clear()
+    yield
+    deserialization_context().clear()
+
+
 def test_deserializer_init_with_defaults():
     """
     Проверка создания десериализатора с фабрикой по умолчанию.
@@ -311,7 +321,7 @@ def test_deserialize_recipe_row_model():
     """
     # Подготовка
     payload = {
-        "id": "c7ca7242-0ae5-4ee8-a0e3-e00d6f45faa8",
+        "id": "row-test-mozzarella-123",
         "name": "Сыр Моцарелла",
         "brutto": 180.0,
         "netto": 150.0,
@@ -336,7 +346,7 @@ def test_deserialize_recipe_row_model():
 
     # Проверки
     assert isinstance(row, recipe_row_model)
-    assert row.id == "c7ca7242-0ae5-4ee8-a0e3-e00d6f45faa8"
+    assert row.id == "row-test-mozzarella-123"
     assert row.name == "Сыр Моцарелла"
     assert row.brutto == 180.0
     assert row.netto == 150.0
@@ -649,3 +659,84 @@ def test_storage_manager_import_dynamic_order_of_collections(tmp_path):
     assert len(manager.get(storage_manager.range_key())) > 0
     assert len(manager.get(storage_manager.nomenclature_key())) > 0
     assert len(manager.get(storage_manager.recipe_key())) > 0
+
+
+def test_models_direct_create_from_dict():
+    """
+    Проверка прямого создания доменных моделей через их фабричные методы create_from_dict.
+    """
+    # Подготовка
+    unit_data = {
+        "id": "direct-unit-1",
+        "name": "миллилитр",
+        "conversion_factor": 1,
+        "base_range": None,
+    }
+    group_data = {
+        "id": "direct-grp-1",
+        "name": "Сырьё",
+    }
+    nom_data = {
+        "id": "direct-nom-1",
+        "name": "Вода",
+        "full_name": "Вода питьевая",
+        "group": group_data,
+        "range": unit_data,
+    }
+
+    # Действие
+    unit = range_model.create_from_dict(unit_data)
+    group = nomenclature_group_model.create_from_dict(group_data)
+    nom = nomenclature_model.create_from_dict(nom_data)
+
+    # Проверки
+    assert isinstance(unit, range_model)
+    assert unit.name == "миллилитр"
+    assert unit.id == "direct-unit-1"
+
+    assert isinstance(group, nomenclature_group_model)
+    assert group.name == "Сырьё"
+    assert group.id == "direct-grp-1"
+
+    assert isinstance(nom, nomenclature_model)
+    assert nom.name == "Вода"
+    assert nom.id == "direct-nom-1"
+    assert nom.group.id == "direct-grp-1"
+    assert nom.range.id == "direct-unit-1"
+
+
+def test_models_create_from_dict_invalid_data_type_raises():
+    """
+    Проверка выброса arguments_exception при передаче некорректного типа в create_from_dict моделей.
+    """
+    # Подготовка
+    invalid_payload = "не словарь"
+    errors = []
+
+    # Действие
+    for model_cls in (range_model, nomenclature_group_model, nomenclature_model, recipe_model):
+        try:
+            model_cls.create_from_dict(invalid_payload)
+        except arguments_exception as exc:
+            errors.append(exc)
+
+    # Проверки
+    assert len(errors) == 4
+
+
+def test_deserializer_factory_resolve_dynamic_type():
+    """
+    Проверка динамического разрешения классов фабрикой десериализаторов без жестких маппингов.
+    """
+    # Подготовка
+    factory = deserializer_factory()
+
+    # Действие
+    cls_qualname = factory._resolve_model_type("src.models.storage_model.storage_model")
+    cls_short = factory._resolve_model_type("storage_model")
+    cls_unknown = factory._resolve_model_type("non_existent_entity")
+
+    # Проверки
+    assert cls_qualname is storage_model
+    assert cls_short is storage_model
+    assert cls_unknown is None

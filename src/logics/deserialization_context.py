@@ -6,13 +6,20 @@ class deserialization_context:
     Контекст десериализации (реестр идентичности Identity Map).
     Обеспечивает сохранение единственности экземпляров сущностей по их id
     и предотвращает циклическую рекурсию при перекрёстных ссылках.
+    Реализован как Singleton для глобальной доступности реестра.
     """
+
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(deserialization_context, cls).__new__(cls)
+        return cls.instance
 
     def __init__(self):
         """
         Инициализирует пустой реестр идентичности объектов.
         """
-        self.__identity_map: dict[str, object] = {}
+        if not hasattr(self, '_deserialization_context__identity_map'):
+            self.__identity_map: dict[str, object] = {}
 
     def get(self, entity_id: str) -> object:
         """

@@ -133,3 +133,39 @@ class range_model(abstract_model):
         Фабричный метод создания единицы измерения 'штука'.
         """
         return range_model(name="штука", conversion_factor=1)
+
+    @classmethod
+    def create_from_dict(cls, data: dict) -> "range_model":
+        """
+        Фабричный метод создания единицы измерения из словаря.
+
+        :param data: Словарь с данными модели
+        :return: Экземпляр range_model
+        """
+        if not isinstance(data, dict):
+            raise arguments_exception("data", "Для создания range_model требуется словарь")
+
+        from src.logics.deserialization_context import deserialization_context
+
+        context = deserialization_context()
+        entity_id = str(data.get("id", "")).strip()
+        if entity_id:
+            cached = context.get(entity_id)
+            if cached is not None:
+                return cached
+
+        name = data.get("name", "")
+        conversion_factor = data.get("conversion_factor", 1)
+        base_data = data.get("base_range")
+        base_range = None
+        if isinstance(base_data, dict):
+            base_range = cls.create_from_dict(base_data)
+        elif isinstance(base_data, range_model):
+            base_range = base_data
+
+        instance = cls(name=name, conversion_factor=conversion_factor, base_range=base_range)
+        if entity_id:
+            instance.id = entity_id
+            context.register(instance)
+
+        return instance

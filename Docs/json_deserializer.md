@@ -6,13 +6,14 @@
 
 - `abstract_deserializer` задаёт общий контракт десериализатора;
 - `basic_deserializer`, `datetime_deserializer` и `model_deserializer` преобразуют различные типы данных;
-- `deserializer_factory` подбирает нужный десериализатор по словарю сопоставления типов и ключей;
-- `deserialization_context` обеспечивает работу реестра идентичности (Identity Map), гарантируя единственность экземпляров по идентификатору `id` и предотвращая дублирование в памяти;
-- `json_deserializer` предоставляет фасадный интерфейс для загрузки данных из строк и файлов JSON.
+- `deserializer_factory` подбирает нужный десериализатор по зарегистрированным типам базовых значений и динамически разрешает классы моделей по строковым ключам и свойству `type`;
+- `deserialization_context` (Singleton) обеспечивает работу реестра идентичности (Identity Map), гарантируя единственность экземпляров по идентификатору `id` и предотвращая дублирование в памяти и циклическую рекурсию;
+- `json_deserializer` предоставляет фасадный интерфейс для загрузки данных из строк и файлов JSON;
+- Доменные модели реализуют собственный фабричный метод `create_from_dict`, инкапсулируя правила конструирования конкретной сущности.
 
 Контракт `deserialize` принимает сырые данные и опциональный целевой тип. Метод `deserialize_value` фабрики рекурсивно обрабатывает коллекции (`list`, `dict`), перечисления и вложенные доменные модели.
 
-`model_deserializer` восстанавливает доменные сущности с сопоставлением типов полей по внутренней карте метаданных (`MODEL_FIELD_TYPES`), фильтрует вычисляемые свойства только для чтения (`gross_weight`, `net_weight` и др.) и сохраняет оригинальный идентификатор `id`.
+`model_deserializer` выступает тонким координатором: разрешает класс модели динамически по полю `type` или явному типу, проверяет реестр идентичности и делегирует непосредственное создание объекта фабричному методу `create_from_dict` самой модели.
 
 ## UML диаграмма классов
 
@@ -39,9 +40,7 @@ classDiagram
         +deserialize(data: object, target_type: type) object
         -_extract_id(data: dict) str
         -_resolve_target_type(data: dict, target_type: type) type
-        -_build_init_kwargs(model_cls: type, data: dict) dict
-        -_populate_remaining_properties(instance: object, model_cls: type, data: dict, handled_keys: set) None
-        -_resolve_field(prop_name: str, prop_value: object, model_cls: type) object
+        +_resolve_class_from_string(name: str) type
     }
 
     class abstract_deserializer_factory {
@@ -56,12 +55,13 @@ classDiagram
         -__datetime_deserializer: datetime_deserializer
         -__model_deserializer: model_deserializer
         -__type_mapping: dict
-        -__key_mapping: dict
+        +_resolve_model_type(target_type_or_key: object) type
         +get_deserializer(target_type_or_key: object) abstract_deserializer
         +deserialize_value(data: object, target_type: object) object
     }
 
     class deserialization_context {
+        -instance: deserialization_context$
         -__identity_map: dict
         +get(entity_id: str) object
         +register(entity: object) object
@@ -73,6 +73,13 @@ classDiagram
         +from_dict(data: object, target_type: object) object
         +from_json(json_string: str, target_type: object) object
         +from_json_file(file_path: str, target_type: object) object
+    }
+
+    class abstract_model {
+        <<abstract>>
+        +id: str
+        +name: str
+        +type: str
     }
 
     abstract_deserializer <|-- basic_deserializer : наследует
@@ -89,6 +96,7 @@ classDiagram
     model_deserializer --> abstract_deserializer_factory : использует
     model_deserializer --> deserialization_context : использует
     json_deserializer --> deserializer_factory : использует
+    model_deserializer ..> abstract_model : создает через create_from_dict
 ```
 
 ## Как это работает по шагам
@@ -98,12 +106,15 @@ classDiagram
 3. `from_dict` обращается к методу `deserializer_factory.deserialize_value`.
 4. `deserialize_value` выполняет диспетчеризацию по типу данных:
    - Списки обходятся поэлементно с рекурсивным вызовом `deserialize_value`.
-   - Полные снимки коллекций (например, `all_data.json`) распознаются по набору ключей сущностей, и каждая коллекция десериализуется в соответствующую модель.
-   - Для одиночных словарей моделей вызывается `model_deserializer.deserialize`.
+   - Для словарей коллекций ключи динамически разрешаются в типы моделей, и элементы десериализуются в соответствующие классы.
+   - Для словарей с метаданными типа вызывается `model_deserializer.deserialize`.
 5. `model_deserializer`:
-   - Проверяет наличие `id` в `deserialization_context` (Identity Map), возвращая готовый экземпляр при повторном обращении.
-   - Определяет целевой класс по явному типу, значению поля `type` (включая полный квалифицированный путь класса) или сигнатуре полей.
-   - Сопоставляет аргументы конструктора через рефлексию `inspect.signature` и рекурсивно разрешает связанные сущности (`group`, `range`, `nomenclature`, `recipe`).
-   - Инициализирует объект, устанавливает `instance.id` и регистрирует его в `deserialization_context`.
-   - Дозаполняет оставшиеся свойства через сеттеры, пропуская вычисляемые поля только для чтения.
-6. Восстановленный граф доменных объектов возвращается вызывающему коду.
+   - Извлекает идентификатор `id` и проверяет реестр идентичности `deserialization_context` (Identity Map), возвращая готовый экземпляр при повторном обращении.
+   - Динамически определяет целевой класс по явному типу или значению поля `type` (полный квалифицированный путь класса или имя модели).
+   - Делегирует создание объекта фабричному методу целевой модели `create_from_dict`.
+   - Регистрирует созданный объект в `deserialization_context`.
+6. Каждая доменная модель в методе `create_from_dict`:
+   - Извлекает собственные поля из словаря.
+   - Рекурсивно восстанавливает вложенные связанные модели через их фабричные методы.
+   - Инициализирует доменный объект с валидацией бизнес-правил.
+7. Восстановленный граф доменных объектов возвращается вызывающему коду.

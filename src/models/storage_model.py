@@ -46,3 +46,32 @@ class storage_model(abstract_model):
         :return: Экземпляр storage_model
         """
         return storage_model(name=name, address=address)
+
+    @classmethod
+    def create_from_dict(cls, data: dict) -> "storage_model":
+        """
+        Фабричный метод создания склада из словаря.
+
+        :param data: Словарь с данными склада
+        :return: Экземпляр storage_model
+        """
+        if not isinstance(data, dict):
+            raise arguments_exception("data", "Для создания storage_model требуется словарь")
+
+        from src.logics.deserialization_context import deserialization_context
+
+        context = deserialization_context()
+        entity_id = str(data.get("id", "")).strip()
+        if entity_id:
+            cached = context.get(entity_id)
+            if cached is not None:
+                return cached
+
+        name = data.get("name", "")
+        address = data.get("address", "")
+        instance = cls(name=name, address=address)
+        if entity_id:
+            instance.id = entity_id
+            context.register(instance)
+
+        return instance
