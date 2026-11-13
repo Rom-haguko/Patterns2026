@@ -1,4 +1,5 @@
 from src.core.abstract_model import abstract_model
+from src.core.exception import arguments_exception
 
 
 class nomenclature_group_model(abstract_model):
@@ -54,4 +55,32 @@ class nomenclature_group_model(abstract_model):
         Фабричный метод создания группы 'Упаковка'.
         """
         return nomenclature_group_model(name="Упаковка")
+
+    @classmethod
+    def create_from_dict(cls, data: dict) -> "nomenclature_group_model":
+        """
+        Фабричный метод создания группы номенклатуры из словаря.
+
+        :param data: Словарь с данными группы
+        :return: Экземпляр nomenclature_group_model
+        """
+        if not isinstance(data, dict):
+            raise arguments_exception("data", "Для создания nomenclature_group_model требуется словарь")
+
+        from src.logics.deserialization_context import deserialization_context
+
+        context = deserialization_context()
+        entity_id = str(data.get("id", "")).strip()
+        if entity_id:
+            cached = context.get(entity_id)
+            if cached is not None:
+                return cached
+
+        name = data.get("name", "")
+        instance = cls(name=name)
+        if entity_id:
+            instance.id = entity_id
+            context.register(instance)
+
+        return instance
 

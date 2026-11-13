@@ -197,3 +197,44 @@ class organization_model(abstract_model):
             corr_account=corr_account
         )
 
+    @classmethod
+    def create_from_dict(cls, data: dict) -> "organization_model":
+        """
+        Фабричный метод создания организации из словаря.
+
+        :param data: Словарь с реквизитами организации
+        :return: Экземпляр organization_model
+        """
+        if not isinstance(data, dict):
+            raise arguments_exception("data", "Для создания organization_model требуется словарь")
+
+        from src.logics.deserialization_context import deserialization_context
+
+        context = deserialization_context()
+        entity_id = str(data.get("id", "")).strip()
+        if entity_id:
+            cached = context.get(entity_id)
+            if cached is not None:
+                return cached
+
+        name = data.get("name")
+        inn = data.get("inn", "")
+        bik = data.get("bik", "")
+        account = data.get("account", "")
+        ownership_form = data.get("ownership_form", "")
+        corr_account = data.get("corr_account", "")
+
+        instance = cls(
+            name=name,
+            inn=inn,
+            bik=bik,
+            account=account,
+            ownership_form=ownership_form,
+            corr_account=corr_account
+        )
+        if entity_id:
+            instance.id = entity_id
+            context.register(instance)
+
+        return instance
+

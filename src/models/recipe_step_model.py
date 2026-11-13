@@ -108,3 +108,40 @@ class recipe_step_model(abstract_model):
             description=description,
             time_minutes=time_minutes
         )
+
+    @classmethod
+    def create_from_dict(cls, data: dict) -> "recipe_step_model":
+        """
+        Фабричный метод создания технологического шага из словаря.
+
+        :param data: Словарь с данными этапа
+        :return: Экземпляр recipe_step_model
+        """
+        if not isinstance(data, dict):
+            raise arguments_exception("data", "Для создания recipe_step_model требуется словарь")
+
+        from src.logics.deserialization_context import deserialization_context
+
+        context = deserialization_context()
+        entity_id = str(data.get("id", "")).strip()
+        if entity_id:
+            cached = context.get(entity_id)
+            if cached is not None:
+                return cached
+
+        step_number = data.get("step_number", 1)
+        name = data.get("name", "")
+        description = data.get("description", "")
+        time_minutes = data.get("time_minutes", 0.0)
+
+        instance = cls(
+            step_number=int(step_number),
+            name=name,
+            description=description,
+            time_minutes=float(time_minutes)
+        )
+        if entity_id:
+            instance.id = entity_id
+            context.register(instance)
+
+        return instance

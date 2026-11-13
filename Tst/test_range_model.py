@@ -140,7 +140,6 @@ def test_range_model_zero_conversion_factor_raises():
     unit_name = "ошибка"
     zero_factor = 0
 
-    # Действие & Проверки
     # Действие
     with pytest.raises(arguments_exception):
         range_model(unit_name, zero_factor)

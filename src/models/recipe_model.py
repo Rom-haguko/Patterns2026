@@ -543,4 +543,67 @@ class recipe_model(abstract_model):
 
         return recipe
 
+    @classmethod
+    def create_from_dict(cls, data: dict) -> "recipe_model":
+        """
+        Фабричный метод создания технологической карты (рецепта) из словаря.
+
+        :param data: Словарь с данными рецепта
+        :return: Экземпляр recipe_model
+        """
+        if not isinstance(data, dict):
+            raise arguments_exception("data", "Для создания recipe_model требуется словарь")
+
+        from src.logics.deserialization_context import deserialization_context
+
+        context = deserialization_context()
+        entity_id = str(data.get("id", "")).strip()
+        if entity_id:
+            cached = context.get(entity_id)
+            if cached is not None:
+                return cached
+
+        name = data.get("name", "")
+        category = data.get("category", "")
+        output = data.get("output", "")
+        standard = data.get("standard", "")
+        cooking_time = float(data.get("cooking_time", 0.0))
+        description = data.get("description", "")
+
+        instance = cls(
+            name=name,
+            category=category,
+            output=output,
+            standard=standard,
+            cooking_time=cooking_time,
+            description=description
+        )
+        if entity_id:
+            instance.id = entity_id
+            context.register(instance)
+
+        target_nom_data = data.get("target_nomenclature")
+        if isinstance(target_nom_data, dict):
+            instance.target_nomenclature = nomenclature_model.create_from_dict(target_nom_data)
+        elif isinstance(target_nom_data, nomenclature_model):
+            instance.target_nomenclature = target_nom_data
+
+        rows_data = data.get("rows", [])
+        if isinstance(rows_data, list):
+            for r_item in rows_data:
+                if isinstance(r_item, dict):
+                    instance.add_row(recipe_row_model.create_from_dict(r_item))
+                elif isinstance(r_item, recipe_row_model):
+                    instance.add_row(r_item)
+
+        steps_data = data.get("steps", [])
+        if isinstance(steps_data, list):
+            for s_item in steps_data:
+                if isinstance(s_item, dict):
+                    instance.add_step(recipe_step_model.create_from_dict(s_item))
+                elif isinstance(s_item, recipe_step_model):
+                    instance.add_step(s_item)
+
+        return instance
+
 

@@ -123,3 +123,54 @@ class nomenclature_model(abstract_model):
                 raise arguments_exception("recipe", "Рецепт должен быть экземпляром recipe_model")
         self.__recipe = value
 
+    @classmethod
+    def create_from_dict(cls, data: dict) -> "nomenclature_model":
+        """
+        Фабричный метод создания номенклатурной позиции из словаря.
+
+        :param data: Словарь с данными номенклатуры
+        :return: Экземпляр nomenclature_model
+        """
+        if not isinstance(data, dict):
+            raise arguments_exception("data", "Для создания nomenclature_model требуется словарь")
+
+        from src.logics.deserialization_context import deserialization_context
+
+        context = deserialization_context()
+        entity_id = str(data.get("id", "")).strip()
+        if entity_id:
+            cached = context.get(entity_id)
+            if cached is not None:
+                return cached
+
+        name = data.get("name", "")
+        full_name = data.get("full_name", "")
+
+        group_data = data.get("group")
+        group = None
+        if isinstance(group_data, dict):
+            group = nomenclature_group_model.create_from_dict(group_data)
+        elif isinstance(group_data, nomenclature_group_model):
+            group = group_data
+
+        range_data = data.get("range")
+        range_val = None
+        if isinstance(range_data, dict):
+            range_val = range_model.create_from_dict(range_data)
+        elif isinstance(range_data, range_model):
+            range_val = range_data
+
+        instance = cls(name=name, full_name=full_name, group=group, range=range_val)
+        if entity_id:
+            instance.id = entity_id
+            context.register(instance)
+
+        recipe_data = data.get("recipe")
+        if isinstance(recipe_data, dict):
+            from src.models.recipe_model import recipe_model
+            instance.recipe = recipe_model.create_from_dict(recipe_data)
+        elif recipe_data is not None:
+            instance.recipe = recipe_data
+
+        return instance
+
