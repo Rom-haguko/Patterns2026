@@ -1,0 +1,1186 @@
+openapi: "3.0.3"
+info:
+  title: Patterns2026 API
+  version: "1.0.0"
+
+paths:
+  /api/get_report:
+    get:
+      operationId: main.get_report
+      summary: Получить отчёт (базовый маршрут)
+      responses:
+        "200":
+          description: Текстовый отчёт
+
+  /api/report-formats:
+    get:
+      operationId: src.logics.api_server.api_get_report_formats
+      summary: Список доступных форматов отчётов
+      responses:
+        "200":
+          description: Список названий форматов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /api/report:
+    get:
+      operationId: main.get_report_by_query
+      summary: Получить отчёт по query-параметрам
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Отчёт
+        "400":
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/report/default/{entity_type}/{entity_code}:
+    get:
+      operationId: main.get_report_default
+      summary: Получить отчёт в формате по умолчанию
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entity_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Отчёт
+        "400":
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Сущность не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/report/{format_name}/{entity_type}/{entity_code}:
+    get:
+      operationId: main.get_report_by_format
+      summary: Получить отчёт в указанном формате
+      parameters:
+        - name: format_name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entity_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Отчёт
+        "400":
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Сущность не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/range:
+    get:
+      operationId: src.logics.api_server.get_all_range
+      summary: Список единиц измерения
+      responses:
+        "200":
+          description: Список объектов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RangeResponse"
+    post:
+      operationId: src.logics.api_server.create_range
+      summary: Создать объект единицы измерения
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RangeInput"
+      responses:
+        "201":
+          description: Созданный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RangeResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/range/{entity_id}:
+    get:
+      operationId: src.logics.api_server.get_range_by_id
+      summary: Получить объект единицы измерения по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Найденный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RangeResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: src.logics.api_server.update_range
+      summary: Обновить объект единицы измерения по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RangeInput"
+      responses:
+        "200":
+          description: Обновлённый объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RangeResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: src.logics.api_server.delete_range
+      summary: Удалить объект единицы измерения по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Успешно удалено
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/nomenclature-group:
+    get:
+      operationId: src.logics.api_server.get_all_nomenclature_group
+      summary: Список групп номенклатуры
+      responses:
+        "200":
+          description: Список объектов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GroupResponse"
+    post:
+      operationId: src.logics.api_server.create_nomenclature_group
+      summary: Создать объект группы номенклатуры
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupInput"
+      responses:
+        "201":
+          description: Созданный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/nomenclature-group/{entity_id}:
+    get:
+      operationId: src.logics.api_server.get_nomenclature_group_by_id
+      summary: Получить объект группы номенклатуры по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Найденный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: src.logics.api_server.update_nomenclature_group
+      summary: Обновить объект группы номенклатуры по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupInput"
+      responses:
+        "200":
+          description: Обновлённый объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: src.logics.api_server.delete_nomenclature_group
+      summary: Удалить объект группы номенклатуры по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Успешно удалено
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/nomenclature:
+    get:
+      operationId: src.logics.api_server.get_all_nomenclature
+      summary: Список номенклатуры
+      responses:
+        "200":
+          description: Список объектов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NomenclatureResponse"
+    post:
+      operationId: src.logics.api_server.create_nomenclature
+      summary: Создать объект номенклатуры
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NomenclatureInput"
+      responses:
+        "201":
+          description: Созданный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NomenclatureResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/nomenclature/{entity_id}:
+    get:
+      operationId: src.logics.api_server.get_nomenclature_by_id
+      summary: Получить объект номенклатуры по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Найденный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NomenclatureResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: src.logics.api_server.update_nomenclature
+      summary: Обновить объект номенклатуры по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NomenclatureInput"
+      responses:
+        "200":
+          description: Обновлённый объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NomenclatureResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: src.logics.api_server.delete_nomenclature
+      summary: Удалить объект номенклатуры по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Успешно удалено
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/storage:
+    get:
+      operationId: src.logics.api_server.get_all_storage
+      summary: Список складов
+      responses:
+        "200":
+          description: Список объектов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StorageResponse"
+    post:
+      operationId: src.logics.api_server.create_storage
+      summary: Создать объект склада
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageInput"
+      responses:
+        "201":
+          description: Созданный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/storage/{entity_id}:
+    get:
+      operationId: src.logics.api_server.get_storage_by_id
+      summary: Получить объект склада по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Найденный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: src.logics.api_server.update_storage
+      summary: Обновить объект склада по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageInput"
+      responses:
+        "200":
+          description: Обновлённый объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: src.logics.api_server.delete_storage
+      summary: Удалить объект склада по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Успешно удалено
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/recipe:
+    get:
+      operationId: src.logics.api_server.get_all_recipe
+      summary: Список технологических карт
+      responses:
+        "200":
+          description: Список объектов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecipeResponse"
+    post:
+      operationId: src.logics.api_server.create_recipe
+      summary: Создать объект технологической карты
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecipeInput"
+      responses:
+        "201":
+          description: Созданный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/recipe/{entity_id}:
+    get:
+      operationId: src.logics.api_server.get_recipe_by_id
+      summary: Получить объект технологической карты по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Найденный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: src.logics.api_server.update_recipe
+      summary: Обновить объект технологической карты по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecipeInput"
+      responses:
+        "200":
+          description: Обновлённый объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: src.logics.api_server.delete_recipe
+      summary: Удалить объект технологической карты по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Успешно удалено
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/organization:
+    get:
+      operationId: src.logics.api_server.get_all_organization
+      summary: Список организаций
+      responses:
+        "200":
+          description: Список объектов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrganizationResponse"
+    post:
+      operationId: src.logics.api_server.create_organization
+      summary: Создать объект организации
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationInput"
+      responses:
+        "201":
+          description: Созданный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/organization/{entity_id}:
+    get:
+      operationId: src.logics.api_server.get_organization_by_id
+      summary: Получить объект организации по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Найденный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: src.logics.api_server.update_organization
+      summary: Обновить объект организации по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationInput"
+      responses:
+        "200":
+          description: Обновлённый объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: src.logics.api_server.delete_organization
+      summary: Удалить объект организации по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Успешно удалено
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/settings:
+    get:
+      operationId: src.logics.api_server.get_all_settings
+      summary: Список настроек
+      responses:
+        "200":
+          description: Список объектов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SettingsResponse"
+    post:
+      operationId: src.logics.api_server.create_settings
+      summary: Создать объект настроек
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsInput"
+      responses:
+        "201":
+          description: Созданный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/settings/{entity_id}:
+    get:
+      operationId: src.logics.api_server.get_settings_by_id
+      summary: Получить объект настроек по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Найденный объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: src.logics.api_server.update_settings
+      summary: Обновить объект настроек по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsInput"
+      responses:
+        "200":
+          description: Обновлённый объект
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsResponse"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: src.logics.api_server.delete_settings
+      summary: Удалить объект настроек по id
+      parameters:
+        - name: entity_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Успешно удалено
+        "404":
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Конфликт зависимостей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        dependencies:
+          type: array
+          items:
+            type: string
+
+    RangeInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        conversion_factor:
+          type: number
+        base_range:
+          type: object
+          nullable: true
+
+    RangeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        conversion_factor:
+          type: number
+        base_range:
+          type: object
+          nullable: true
+        total_conversion_factor:
+          type: number
+
+    GroupInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+
+    GroupResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    NomenclatureInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        full_name:
+          type: string
+        group_id:
+          type: string
+        range_id:
+          type: string
+
+    NomenclatureResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        full_name:
+          type: string
+        group:
+          type: object
+          nullable: true
+        range:
+          type: object
+          nullable: true
+
+    StorageInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+
+    StorageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+
+    RecipeInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        cooking_time:
+          type: number
+
+    RecipeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        cooking_time:
+          type: number
+
+    OrganizationInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        inn:
+          type: string
+        bik:
+          type: string
+        account:
+          type: string
+        ownership_form:
+          type: string
+        corr_account:
+          type: string
+
+    OrganizationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        inn:
+          type: string
+        bik:
+          type: string
+        account:
+          type: string
+        ownership_form:
+          type: string
+        corr_account:
+          type: string
+
+    SettingsInput:
+      type: object
+      properties:
+        name:
+          type: string
+        boss_name:
+          type: string
+        account_name:
+          type: string
+        response_format:
+          type: string
+
+    SettingsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        boss_name:
+          type: string
+        account_name:
+          type: string
+        response_format:
+          type: string
+        company:
+          $ref: "#/components/schemas/OrganizationResponse"

@@ -46,5 +46,8 @@ def get_report_by_query():
     return service.get_report_response(entity_type, entity_code, format_name)
 
 
+api.add_api("openapi.yaml")
+
+
 if __name__ == "__main__":
     api.run(host="0.0.0.0", port=8080)

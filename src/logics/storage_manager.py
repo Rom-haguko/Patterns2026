@@ -27,7 +27,7 @@ class storage_manager(abstract_manager):
         """
         if not hasattr(cls, "instance"):
             cls.instance = object.__new__(cls)
-            cls.instance._initialized = False 
+            cls.instance._initialized = False
         return cls.instance
 
     def __init__(self):
@@ -44,7 +44,7 @@ class storage_manager(abstract_manager):
         self.__data[self.group_key()] = []
         self.__data[self.storage_key()] = []
         self.__data[self.recipe_key()] = []
-        
+
         self.convert()
         self._initialized = True
 
@@ -90,6 +90,20 @@ class storage_manager(abstract_manager):
         """
         return "recipe_model"
 
+    @staticmethod
+    def organization_key() -> str:
+        """
+        Ключ доступа к коллекции организаций (organization_model).
+        """
+        return "organization_model"
+
+    @staticmethod
+    def settings_key() -> str:
+        """
+        Ключ доступа к коллекции настроек (settings_model).
+        """
+        return "settings_model"
+
     @property
     def data(self) -> dict:
         """
@@ -132,6 +146,12 @@ class storage_manager(abstract_manager):
             "storage_model": self.storage_key(),
             "группа_номенклатуры": self.group_key(),
             "nomenclature_group_model": self.group_key(),
+            "организация": self.organization_key(),
+            "organization": self.organization_key(),
+            "organization_model": self.organization_key(),
+            "настройки": self.settings_key(),
+            "settings": self.settings_key(),
+            "settings_model": self.settings_key(),
         }
 
         key = type_mapping.get(normalized)
@@ -158,7 +178,7 @@ class storage_manager(abstract_manager):
         :return: True при успешном экспорте
         """
         from src.logics.json_serializer import json_serializer
-        
+
         serializer = json_serializer()
         all_data = {
             self.range_key(): self.get(self.range_key()),
@@ -167,7 +187,7 @@ class storage_manager(abstract_manager):
             self.storage_key(): self.get(self.storage_key()),
             self.recipe_key(): self.get(self.recipe_key()),
         }
-        
+
         serializer.to_json_file(all_data, file_path)
         return True
 
@@ -216,6 +236,43 @@ class storage_manager(abstract_manager):
             return False
         collection.append(item)
         return True
+
+    def update(self, key: str, item: object, entity_id: str = None) -> bool:
+        """
+        Обновляет существующий объект в коллекции по его идентификатору.
+
+        :param key: Текстовый ключ коллекции.
+        :param item: Обновлённый объект доменной модели.
+        :param entity_id: Исходный идентификатор обновляемого объекта (если None, берётся item.id).
+        :return: True, если объект найден и обновлён; иначе False.
+        """
+        validator.validate(key, str)
+        if item is None or not hasattr(item, "id"):
+            return False
+        collection = self.get(key)
+        target_id = str(entity_id if entity_id is not None else item.id).strip()
+        for index, existing in enumerate(collection):
+            if str(getattr(existing, "id", "")).strip() == target_id:
+                collection[index] = item
+                return True
+        return False
+
+    def delete(self, key: str, entity_id: str) -> bool:
+        """
+        Удаляет объект из коллекции по его идентификатору.
+
+        :param key: Текстовый ключ коллекции.
+        :param entity_id: Идентификатор удаляемого объекта.
+        :return: True, если объект найден и удалён; иначе False.
+        """
+        validator.validate(key, str)
+        target_id = str(entity_id).strip()
+        collection = self.get(key)
+        for index, existing in enumerate(collection):
+            if str(getattr(existing, "id", "")).strip() == target_id:
+                collection.pop(index)
+                return True
+        return False
 
     def convert(self) -> bool:
         """

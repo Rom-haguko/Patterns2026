@@ -4,7 +4,6 @@ from src.core.exception import operation_exception
 from src.core.file_resolver import file_path_resolver
 from src.core.validator import validator
 from src.models.settings_model import settings_model
-from src.models.organization_model import organization_model
 
 
 class settings_manager(abstract_manager):
@@ -42,6 +41,13 @@ class settings_manager(abstract_manager):
         """
         return self.__settings
 
+    @settings.setter
+    def settings(self, value: settings_model) -> None:
+        """
+        Устанавливает актуальные настройки приложения.
+        """
+        self.__settings = value
+
     @property
     def is_loaded(self) -> bool:
         """
@@ -56,72 +62,28 @@ class settings_manager(abstract_manager):
         """
         return self.__data
 
-    def _get_first_valid(self, data_dict: dict, keys: list) -> str:
-        """
-        Ищет в словаре первое непустое значение по списку ключей.
-        """
-        for key in keys:
-            if key in data_dict and data_dict[key]:
-                return str(data_dict[key]).strip()
-        return ""
-
     def convert(self) -> bool:
         """
-        Обработка загруженных сырых данных JSON и преобразование в модель settings_model.
+        Обработка загруженных сырых данных JSON и преобразование в модель settings_model
+        с использованием фабрики create_from_dict и контекста десериализации.
         """
         if not isinstance(self.__data, dict):
             return False
 
-        self.__settings = settings_model()
+        normalized = dict(self.__data)
 
-        if "company" in self.__data and isinstance(self.__data["company"], dict):
-            comp_dict = self.__data["company"]
-            company = organization_model()
-
-            name_val = self._get_first_valid(comp_dict, ["name"])
-            if name_val:
-                company.name = name_val
-
-            inn_val = self._get_first_valid(comp_dict, ["inn"])
-            if not inn_val and "inn_kpp" in comp_dict and comp_dict["inn_kpp"]:
-                inn_part = str(comp_dict["inn_kpp"]).split("/")[0].strip()
+        if "company" in normalized and isinstance(normalized["company"], dict):
+            comp_data = dict(normalized["company"])
+            if not comp_data.get("inn") and comp_data.get("inn_kpp"):
+                inn_part = str(comp_data["inn_kpp"]).split("/")[0].strip()
                 if len(inn_part) in (10, 12) and inn_part.isdigit():
-                    inn_val = inn_part
-            if inn_val:
-                company.inn = inn_val
+                    comp_data["inn"] = inn_part
+            normalized["company"] = comp_data
 
-            bik_val = self._get_first_valid(comp_dict, ["bik"])
-            if bik_val:
-                company.bik = bik_val
+            if not normalized.get("boss_name") and comp_data.get("ceo"):
+                normalized["boss_name"] = str(comp_data["ceo"]).strip()
 
-            account_val = self._get_first_valid(comp_dict, ["account"])
-            if account_val:
-                company.account = account_val
-
-            ownership_val = self._get_first_valid(comp_dict, ["ownership_form"])
-            if ownership_val:
-                company.ownership_form = ownership_val
-
-            corr_account_val = self._get_first_valid(comp_dict, ["corr_account"])
-            if corr_account_val:
-                company.corr_account = corr_account_val
-
-            self.__settings.company = company
-
-        boss_val = self._get_first_valid(self.__data, ["boss_name"])
-        if not boss_val and "company" in self.__data and isinstance(self.__data["company"], dict):
-            boss_val = self._get_first_valid(self.__data["company"], ["ceo"])
-        if boss_val:
-            self.__settings.boss_name = boss_val
-
-        acc_name_val = self._get_first_valid(self.__data, ["account_name"])
-        if acc_name_val:
-            self.__settings.account_name = acc_name_val
-
-        format_val = self._get_first_valid(self.__data, ["response_format"])
-        if format_val:
-            self.__settings.response_format = format_val
-
+        self.__settings = settings_model.create_from_dict(normalized)
         return True
 
     def load(self, file_name: str = "") -> bool:
