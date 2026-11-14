@@ -27,6 +27,8 @@ class settings_model(abstract_model):
         """
         if not isinstance(other, settings_model):
             return False
+        if self.id and other.id:
+            return str(self.id).strip() == str(other.id).strip()
         return (
             self.company == other.company
             and self.boss_name == other.boss_name

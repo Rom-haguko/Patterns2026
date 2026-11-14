@@ -369,3 +369,117 @@ def test_export_all_to_json_writes_all_collections(tmp_path):
     assert len(recipes) > 0
     assert len(recipes[0]["rows"]) > 0
     assert recipes[0]["rows"][0]["nomenclature"]["recipe"] is not None
+
+
+def test_storage_manager_update_existing_item():
+    """
+    Проверка успешного обновления существующего объекта в хранилище.
+    """
+    # Подготовка
+    manager = storage_manager()
+    group = nomenclature_group_model("Группа для обновления")
+    manager.add(storage_manager.group_key(), group)
+    updated_group = nomenclature_group_model.create_from_dict({"id": group.id, "name": "Обновленное наименование"})
+
+    try:
+        # Действие
+        result = manager.update(storage_manager.group_key(), updated_group)
+
+        # Проверки
+        assert result is True
+        found = next((item for item in manager.get(storage_manager.group_key()) if item.id == group.id), None)
+        assert found is not None
+        assert found.name == "Обновленное наименование"
+    finally:
+        manager.delete(storage_manager.group_key(), group.id)
+
+
+def test_storage_manager_update_non_existing_returns_false():
+    """
+    Проверка возврата False при обновлении несуществующего объекта.
+    """
+    # Подготовка
+    manager = storage_manager()
+    dummy = nomenclature_group_model.create_from_dict({"id": "non-existent-id", "name": "Не существует"})
+
+    # Действие
+    result = manager.update(storage_manager.group_key(), dummy)
+
+    # Проверки
+    assert result is False
+
+
+def test_storage_manager_delete_existing_item():
+    """
+    Проверка успешного удаления объекта из хранилища.
+    """
+    # Подготовка
+    manager = storage_manager()
+    group = nomenclature_group_model("Группа для удаления")
+    manager.add(storage_manager.group_key(), group)
+
+    try:
+        # Действие
+        result = manager.delete(storage_manager.group_key(), group.id)
+
+        # Проверки
+        assert result is True
+        found = next((item for item in manager.get(storage_manager.group_key()) if item.id == group.id), None)
+        assert found is None
+    finally:
+        manager.delete(storage_manager.group_key(), group.id)
+
+
+def test_storage_manager_delete_non_existing_returns_false():
+    """
+    Проверка возврата False при удалении несуществующего объекта.
+    """
+    # Подготовка
+    manager = storage_manager()
+
+    # Действие
+    result = manager.delete(storage_manager.group_key(), "non-existent-id")
+
+    # Проверки
+    assert result is False
+
+
+def test_storage_manager_organization_and_settings_keys():
+    """
+    Проверка ключей и маппинга типов для организаций и настроек.
+    """
+    # Подготовка
+    manager = storage_manager()
+
+    # Действие
+    org_key = storage_manager.organization_key()
+    set_key = storage_manager.settings_key()
+
+    # Проверки
+    assert org_key == "organization_model"
+    assert set_key == "settings_model"
+    assert manager.get_by_type("organization") is not None
+    assert manager.get_by_type("settings") is not None
+
+
+def test_storage_manager_update_with_id_change():
+    """
+    Проверка обновления объекта с изменением идентификатора.
+    """
+    # Подготовка
+    manager = storage_manager()
+    group = nomenclature_group_model("Группа со сменой ID")
+    manager.add(storage_manager.group_key(), group)
+    new_group = nomenclature_group_model.create_from_dict({"id": "new-group-id", "name": "Новое имя"})
+
+    try:
+        # Действие
+        result = manager.update(storage_manager.group_key(), new_group, entity_id=group.id)
+
+        # Проверки
+        assert result is True
+        assert manager.delete(storage_manager.group_key(), "new-group-id") is True
+    finally:
+        manager.delete(storage_manager.group_key(), group.id)
+        manager.delete(storage_manager.group_key(), "new-group-id")
+
