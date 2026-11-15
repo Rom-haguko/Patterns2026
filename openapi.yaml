@@ -6,7 +6,7 @@ info:
 paths:
   /api/get_report:
     get:
-      operationId: main.get_report
+      operationId: src.logics.api_server.api_server.get_default_report
       summary: Получить отчёт (базовый маршрут)
       responses:
         "200":
@@ -14,7 +14,7 @@ paths:
 
   /api/report-formats:
     get:
-      operationId: src.logics.api_server.api_get_report_formats
+      operationId: src.logics.api_server.api_server.api_get_report_formats
       summary: Список доступных форматов отчётов
       responses:
         "200":
@@ -28,7 +28,7 @@ paths:
 
   /api/report:
     get:
-      operationId: main.get_report_by_query
+      operationId: src.logics.api_server.api_server.get_report_by_query
       summary: Получить отчёт по query-параметрам
       parameters:
         - name: format
@@ -58,8 +58,39 @@ paths:
 
   /api/report/default/{entity_type}/{entity_code}:
     get:
-      operationId: main.get_report_default
+      operationId: src.logics.api_server.api_server.get_report_default
       summary: Получить отчёт в формате по умолчанию
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entity_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Отчёт
+        "400":
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Сущность не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/report/{entity_type}/{entity_code}:
+    get:
+      operationId: src.logics.api_server.api_server.get_report_by_entity
+      summary: Получить отчёт по умолчанию для сущности
       parameters:
         - name: entity_type
           in: path
@@ -89,7 +120,7 @@ paths:
 
   /api/report/{format_name}/{entity_type}/{entity_code}:
     get:
-      operationId: main.get_report_by_format
+      operationId: src.logics.api_server.api_server.get_report_by_format
       summary: Получить отчёт в указанном формате
       parameters:
         - name: format_name
@@ -125,7 +156,7 @@ paths:
 
   /api/range:
     get:
-      operationId: src.logics.api_server.get_all_range
+      operationId: src.logics.api_server.api_server.get_all_range
       summary: Список единиц измерения
       responses:
         "200":
@@ -137,7 +168,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/RangeResponse"
     post:
-      operationId: src.logics.api_server.create_range
+      operationId: src.logics.api_server.api_server.create_range
       summary: Создать объект единицы измерения
       requestBody:
         required: true
@@ -161,7 +192,7 @@ paths:
 
   /api/range/{entity_id}:
     get:
-      operationId: src.logics.api_server.get_range_by_id
+      operationId: src.logics.api_server.api_server.get_range_by_id
       summary: Получить объект единицы измерения по id
       parameters:
         - name: entity_id
@@ -183,7 +214,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     put:
-      operationId: src.logics.api_server.update_range
+      operationId: src.logics.api_server.api_server.update_range
       summary: Обновить объект единицы измерения по id
       parameters:
         - name: entity_id
@@ -223,7 +254,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     delete:
-      operationId: src.logics.api_server.delete_range
+      operationId: src.logics.api_server.api_server.delete_range
       summary: Удалить объект единицы измерения по id
       parameters:
         - name: entity_id
@@ -249,7 +280,7 @@ paths:
 
   /api/nomenclature-group:
     get:
-      operationId: src.logics.api_server.get_all_nomenclature_group
+      operationId: src.logics.api_server.api_server.get_all_nomenclature_group
       summary: Список групп номенклатуры
       responses:
         "200":
@@ -261,7 +292,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/GroupResponse"
     post:
-      operationId: src.logics.api_server.create_nomenclature_group
+      operationId: src.logics.api_server.api_server.create_nomenclature_group
       summary: Создать объект группы номенклатуры
       requestBody:
         required: true
@@ -285,7 +316,7 @@ paths:
 
   /api/nomenclature-group/{entity_id}:
     get:
-      operationId: src.logics.api_server.get_nomenclature_group_by_id
+      operationId: src.logics.api_server.api_server.get_nomenclature_group_by_id
       summary: Получить объект группы номенклатуры по id
       parameters:
         - name: entity_id
@@ -307,7 +338,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     put:
-      operationId: src.logics.api_server.update_nomenclature_group
+      operationId: src.logics.api_server.api_server.update_nomenclature_group
       summary: Обновить объект группы номенклатуры по id
       parameters:
         - name: entity_id
@@ -347,7 +378,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     delete:
-      operationId: src.logics.api_server.delete_nomenclature_group
+      operationId: src.logics.api_server.api_server.delete_nomenclature_group
       summary: Удалить объект группы номенклатуры по id
       parameters:
         - name: entity_id
@@ -373,7 +404,7 @@ paths:
 
   /api/nomenclature:
     get:
-      operationId: src.logics.api_server.get_all_nomenclature
+      operationId: src.logics.api_server.api_server.get_all_nomenclature
       summary: Список номенклатуры
       responses:
         "200":
@@ -385,7 +416,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/NomenclatureResponse"
     post:
-      operationId: src.logics.api_server.create_nomenclature
+      operationId: src.logics.api_server.api_server.create_nomenclature
       summary: Создать объект номенклатуры
       requestBody:
         required: true
@@ -409,7 +440,7 @@ paths:
 
   /api/nomenclature/{entity_id}:
     get:
-      operationId: src.logics.api_server.get_nomenclature_by_id
+      operationId: src.logics.api_server.api_server.get_nomenclature_by_id
       summary: Получить объект номенклатуры по id
       parameters:
         - name: entity_id
@@ -431,7 +462,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     put:
-      operationId: src.logics.api_server.update_nomenclature
+      operationId: src.logics.api_server.api_server.update_nomenclature
       summary: Обновить объект номенклатуры по id
       parameters:
         - name: entity_id
@@ -471,7 +502,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     delete:
-      operationId: src.logics.api_server.delete_nomenclature
+      operationId: src.logics.api_server.api_server.delete_nomenclature
       summary: Удалить объект номенклатуры по id
       parameters:
         - name: entity_id
@@ -497,7 +528,7 @@ paths:
 
   /api/storage:
     get:
-      operationId: src.logics.api_server.get_all_storage
+      operationId: src.logics.api_server.api_server.get_all_storage
       summary: Список складов
       responses:
         "200":
@@ -509,7 +540,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/StorageResponse"
     post:
-      operationId: src.logics.api_server.create_storage
+      operationId: src.logics.api_server.api_server.create_storage
       summary: Создать объект склада
       requestBody:
         required: true
@@ -533,7 +564,7 @@ paths:
 
   /api/storage/{entity_id}:
     get:
-      operationId: src.logics.api_server.get_storage_by_id
+      operationId: src.logics.api_server.api_server.get_storage_by_id
       summary: Получить объект склада по id
       parameters:
         - name: entity_id
@@ -555,7 +586,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     put:
-      operationId: src.logics.api_server.update_storage
+      operationId: src.logics.api_server.api_server.update_storage
       summary: Обновить объект склада по id
       parameters:
         - name: entity_id
@@ -595,7 +626,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     delete:
-      operationId: src.logics.api_server.delete_storage
+      operationId: src.logics.api_server.api_server.delete_storage
       summary: Удалить объект склада по id
       parameters:
         - name: entity_id
@@ -621,7 +652,7 @@ paths:
 
   /api/recipe:
     get:
-      operationId: src.logics.api_server.get_all_recipe
+      operationId: src.logics.api_server.api_server.get_all_recipe
       summary: Список технологических карт
       responses:
         "200":
@@ -633,7 +664,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/RecipeResponse"
     post:
-      operationId: src.logics.api_server.create_recipe
+      operationId: src.logics.api_server.api_server.create_recipe
       summary: Создать объект технологической карты
       requestBody:
         required: true
@@ -657,7 +688,7 @@ paths:
 
   /api/recipe/{entity_id}:
     get:
-      operationId: src.logics.api_server.get_recipe_by_id
+      operationId: src.logics.api_server.api_server.get_recipe_by_id
       summary: Получить объект технологической карты по id
       parameters:
         - name: entity_id
@@ -679,7 +710,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     put:
-      operationId: src.logics.api_server.update_recipe
+      operationId: src.logics.api_server.api_server.update_recipe
       summary: Обновить объект технологической карты по id
       parameters:
         - name: entity_id
@@ -719,7 +750,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     delete:
-      operationId: src.logics.api_server.delete_recipe
+      operationId: src.logics.api_server.api_server.delete_recipe
       summary: Удалить объект технологической карты по id
       parameters:
         - name: entity_id
@@ -745,7 +776,7 @@ paths:
 
   /api/organization:
     get:
-      operationId: src.logics.api_server.get_all_organization
+      operationId: src.logics.api_server.api_server.get_all_organization
       summary: Список организаций
       responses:
         "200":
@@ -757,7 +788,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/OrganizationResponse"
     post:
-      operationId: src.logics.api_server.create_organization
+      operationId: src.logics.api_server.api_server.create_organization
       summary: Создать объект организации
       requestBody:
         required: true
@@ -781,7 +812,7 @@ paths:
 
   /api/organization/{entity_id}:
     get:
-      operationId: src.logics.api_server.get_organization_by_id
+      operationId: src.logics.api_server.api_server.get_organization_by_id
       summary: Получить объект организации по id
       parameters:
         - name: entity_id
@@ -803,7 +834,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     put:
-      operationId: src.logics.api_server.update_organization
+      operationId: src.logics.api_server.api_server.update_organization
       summary: Обновить объект организации по id
       parameters:
         - name: entity_id
@@ -843,7 +874,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     delete:
-      operationId: src.logics.api_server.delete_organization
+      operationId: src.logics.api_server.api_server.delete_organization
       summary: Удалить объект организации по id
       parameters:
         - name: entity_id
@@ -869,7 +900,7 @@ paths:
 
   /api/settings:
     get:
-      operationId: src.logics.api_server.get_all_settings
+      operationId: src.logics.api_server.api_server.get_all_settings
       summary: Список настроек
       responses:
         "200":
@@ -881,7 +912,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/SettingsResponse"
     post:
-      operationId: src.logics.api_server.create_settings
+      operationId: src.logics.api_server.api_server.create_settings
       summary: Создать объект настроек
       requestBody:
         required: true
@@ -905,7 +936,7 @@ paths:
 
   /api/settings/{entity_id}:
     get:
-      operationId: src.logics.api_server.get_settings_by_id
+      operationId: src.logics.api_server.api_server.get_settings_by_id
       summary: Получить объект настроек по id
       parameters:
         - name: entity_id
@@ -927,7 +958,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     put:
-      operationId: src.logics.api_server.update_settings
+      operationId: src.logics.api_server.api_server.update_settings
       summary: Обновить объект настроек по id
       parameters:
         - name: entity_id
@@ -967,7 +998,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     delete:
-      operationId: src.logics.api_server.delete_settings
+      operationId: src.logics.api_server.api_server.delete_settings
       summary: Удалить объект настроек по id
       parameters:
         - name: entity_id

@@ -9,15 +9,21 @@ class deserialization_context:
     Реализован как Singleton для глобальной доступности реестра.
     """
 
-    def __new__(cls):
+    def __new__(cls, isolated: bool = False):
+        if isolated:
+            obj = super(deserialization_context, cls).__new__(cls)
+            obj._deserialization_context__identity_map = {}
+            return obj
         if not hasattr(cls, 'instance'):
             cls.instance = super(deserialization_context, cls).__new__(cls)
         return cls.instance
 
-    def __init__(self):
+    def __init__(self, isolated: bool = False):
         """
         Инициализирует пустой реестр идентичности объектов.
         """
+        if isolated:
+            return
         if not hasattr(self, '_deserialization_context__identity_map'):
             self.__identity_map: dict[str, object] = {}
 

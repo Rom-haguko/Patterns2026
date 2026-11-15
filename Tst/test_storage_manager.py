@@ -1,6 +1,7 @@
 import json
 import pytest
 from src.logics.storage_manager import storage_manager
+from src.logics.handlers.group_handler import group_handler
 from src.models.nomenclature_group_model import nomenclature_group_model
 from src.models.nomenclature_model import nomenclature_model
 from src.models.range_model import range_model
@@ -13,9 +14,11 @@ def test_equals_storage_manager_singleton():
     равны по значению (__eq__).
     """
     # Подготовка
+    cls = storage_manager
+
     # Действие
-    instance1 = storage_manager()
-    instance2 = storage_manager()
+    instance1 = cls()
+    instance2 = cls()
 
     # Проверки
     assert instance1 == instance2
@@ -27,9 +30,11 @@ def test_same_instance_storage_manager_singleton():
     одним и тем же объектом в памяти.
     """
     # Подготовка
+    cls = storage_manager
+
     # Действие
-    instance1 = storage_manager()
-    instance2 = storage_manager()
+    instance1 = cls()
+    instance2 = cls()
 
     # Проверки
     assert instance1 is instance2
@@ -44,10 +49,10 @@ def test_not_none_get_storage_manager_keys():
     manager = storage_manager()
 
     # Действие
-    ranges = manager.get(storage_manager.range_key())
-    nomenclatures = manager.get(storage_manager.nomenclature_key())
-    groups = manager.get(storage_manager.group_key())
-    storages = manager.get(storage_manager.storage_key())
+    ranges = manager.collection(storage_manager.range_key())
+    nomenclatures = manager.collection(storage_manager.nomenclature_key())
+    groups = manager.collection(storage_manager.group_key())
+    storages = manager.collection(storage_manager.storage_key())
 
     # Проверки
     assert isinstance(ranges, list)
@@ -56,16 +61,16 @@ def test_not_none_get_storage_manager_keys():
     assert isinstance(storages, list)
 
 
-def test_get_unknown_key_returns_empty_list():
+def test_collection_unknown_key_returns_empty_list():
     """
-    Проверка поведения get() при обращении по неизвестному ключу:
+    Проверка поведения collection() при обращении по неизвестному ключу:
     должен вернуться пустой список без исключений.
     """
     # Подготовка
     manager = storage_manager()
 
     # Действие
-    result = manager.get("unknown_key_xyz")
+    result = manager.collection("unknown_key_xyz")
 
     # Проверки
     assert isinstance(result, list)
@@ -81,7 +86,7 @@ def test_convert_ranges_not_empty():
     manager = storage_manager()
 
     # Действие
-    ranges = manager.get(storage_manager.range_key())
+    ranges = manager.collection(storage_manager.range_key())
 
     # Проверки
     assert len(ranges) > 0
@@ -95,7 +100,7 @@ def test_convert_groups_not_empty():
     manager = storage_manager()
 
     # Действие
-    groups = manager.get(storage_manager.group_key())
+    groups = manager.collection(storage_manager.group_key())
 
     # Проверки
     assert len(groups) > 0
@@ -110,7 +115,7 @@ def test_convert_nomenclature_not_empty():
     manager = storage_manager()
 
     # Действие
-    nomenclatures = manager.get(storage_manager.nomenclature_key())
+    nomenclatures = manager.collection(storage_manager.nomenclature_key())
 
     # Проверки
     assert len(nomenclatures) > 0
@@ -125,7 +130,7 @@ def test_convert_storages_not_empty():
     manager = storage_manager()
 
     # Действие
-    storages = manager.get(storage_manager.storage_key())
+    storages = manager.collection(storage_manager.storage_key())
 
     # Проверки
     assert len(storages) > 0
@@ -140,7 +145,7 @@ def test_convert_ranges_contain_correct_types():
     manager = storage_manager()
 
     # Действие
-    ranges = manager.get(storage_manager.range_key())
+    ranges = manager.collection(storage_manager.range_key())
 
     # Проверки
     assert all(isinstance(r, range_model) for r in ranges)
@@ -155,7 +160,7 @@ def test_convert_groups_contain_correct_types():
     manager = storage_manager()
 
     # Действие
-    groups = manager.get(storage_manager.group_key())
+    groups = manager.collection(storage_manager.group_key())
 
     # Проверки
     assert all(isinstance(g, nomenclature_group_model) for g in groups)
@@ -170,7 +175,7 @@ def test_convert_nomenclature_contain_correct_types():
     manager = storage_manager()
 
     # Действие
-    nomenclatures = manager.get(storage_manager.nomenclature_key())
+    nomenclatures = manager.collection(storage_manager.nomenclature_key())
 
     # Проверки
     assert all(isinstance(n, nomenclature_model) for n in nomenclatures)
@@ -185,7 +190,7 @@ def test_convert_storages_contain_correct_types():
     manager = storage_manager()
 
     # Действие
-    storages = manager.get(storage_manager.storage_key())
+    storages = manager.collection(storage_manager.storage_key())
 
     # Проверки
     assert all(isinstance(s, storage_model) for s in storages)
@@ -200,7 +205,7 @@ def test_convert_ranges_names_not_empty():
     manager = storage_manager()
 
     # Действие
-    ranges = manager.get(storage_manager.range_key())
+    ranges = manager.collection(storage_manager.range_key())
 
     # Проверки
     assert all(r.name != "" for r in ranges)
@@ -215,7 +220,7 @@ def test_convert_nomenclature_have_valid_group_and_range():
     manager = storage_manager()
 
     # Действие
-    nomenclatures = manager.get(storage_manager.nomenclature_key())
+    nomenclatures = manager.collection(storage_manager.nomenclature_key())
 
     # Проверки
     for item in nomenclatures:
@@ -231,13 +236,13 @@ def test_add_duplicate_not_added():
     # Подготовка
     manager = storage_manager()
     group = nomenclature_group_model("Тест-дубликат-группа")
-    coll = manager.get(storage_manager.group_key())
-    manager.add(storage_manager.group_key(), group)
+    coll = manager.collection(storage_manager.group_key())
+    manager.save(storage_manager.group_key(), group)
     size_after_first = len(coll)
 
     try:
         # Действие
-        result = manager.add(storage_manager.group_key(), group)
+        result = manager.save(storage_manager.group_key(), group)
         size_after_second = len(coll)
 
         # Проверки
@@ -257,13 +262,13 @@ def test_add_different_objects_both_added():
     manager = storage_manager()
     group1 = nomenclature_group_model("Уникальная-группа-A")
     group2 = nomenclature_group_model("Уникальная-группа-A")
-    coll = manager.get(storage_manager.group_key())
+    coll = manager.collection(storage_manager.group_key())
     size_before = len(coll)
 
     try:
         # Действие
-        result1 = manager.add(storage_manager.group_key(), group1)
-        result2 = manager.add(storage_manager.group_key(), group2)
+        result1 = manager.save(storage_manager.group_key(), group1)
+        result2 = manager.save(storage_manager.group_key(), group2)
         size_after = len(coll)
 
         # Проверки
@@ -284,14 +289,14 @@ def test_add_none_returns_false():
     """
     # Подготовка
     manager = storage_manager()
-    size_before = len(manager.get(storage_manager.range_key()))
+    size_before = len(manager.collection(storage_manager.range_key()))
 
     # Действие
-    result = manager.add(storage_manager.range_key(), None)
+    result = manager.save(storage_manager.range_key(), None)
 
     # Проверки
     assert result is False
-    assert len(manager.get(storage_manager.range_key())) == size_before
+    assert len(manager.collection(storage_manager.range_key())) == size_before
 
 
 def test_add_returns_true_on_new_item():
@@ -302,15 +307,15 @@ def test_add_returns_true_on_new_item():
     # Подготовка
     manager = storage_manager()
     new_storage = storage_model("Склад-новый-тест", "ул. Тестовая, д. 99")
-    coll = manager.get(storage_manager.storage_key())
+    coll = manager.collection(storage_manager.storage_key())
 
     try:
         # Действие
-        result = manager.add(storage_manager.storage_key(), new_storage)
+        result = manager.save(storage_manager.storage_key(), new_storage)
 
         # Проверки
         assert result is True
-        assert new_storage in manager.get(storage_manager.storage_key())
+        assert new_storage in manager.collection(storage_manager.storage_key())
     finally:
         if new_storage in coll:
             coll.remove(new_storage)
@@ -362,8 +367,8 @@ def test_export_all_to_json_writes_all_collections(tmp_path):
 
     for key in expected_keys:
         assert isinstance(data[key], list)
-        assert len(data[key]) == len(manager.get(key))
-        assert [item["id"] for item in data[key]] == [item.id for item in manager.get(key)]
+        assert len(data[key]) == len(manager.collection(key))
+        assert [item["id"] for item in data[key]] == [item.id for item in manager.collection(key)]
 
     recipes = data[storage_manager.recipe_key()]
     assert len(recipes) > 0
@@ -371,77 +376,159 @@ def test_export_all_to_json_writes_all_collections(tmp_path):
     assert recipes[0]["rows"][0]["nomenclature"]["recipe"] is not None
 
 
-def test_storage_manager_update_existing_item():
+def test_storage_manager_has_no_update_or_delete_methods():
     """
-    Проверка успешного обновления существующего объекта в хранилище.
-    """
-    # Подготовка
-    manager = storage_manager()
-    group = nomenclature_group_model("Группа для обновления")
-    manager.add(storage_manager.group_key(), group)
-    updated_group = nomenclature_group_model.create_from_dict({"id": group.id, "name": "Обновленное наименование"})
-
-    try:
-        # Действие
-        result = manager.update(storage_manager.group_key(), updated_group)
-
-        # Проверки
-        assert result is True
-        found = next((item for item in manager.get(storage_manager.group_key()) if item.id == group.id), None)
-        assert found is not None
-        assert found.name == "Обновленное наименование"
-    finally:
-        manager.delete(storage_manager.group_key(), group.id)
-
-
-def test_storage_manager_update_non_existing_returns_false():
-    """
-    Проверка возврата False при обновлении несуществующего объекта.
-    """
-    # Подготовка
-    manager = storage_manager()
-    dummy = nomenclature_group_model.create_from_dict({"id": "non-existent-id", "name": "Не существует"})
-
-    # Действие
-    result = manager.update(storage_manager.group_key(), dummy)
-
-    # Проверки
-    assert result is False
-
-
-def test_storage_manager_delete_existing_item():
-    """
-    Проверка успешного удаления объекта из хранилища.
-    """
-    # Подготовка
-    manager = storage_manager()
-    group = nomenclature_group_model("Группа для удаления")
-    manager.add(storage_manager.group_key(), group)
-
-    try:
-        # Действие
-        result = manager.delete(storage_manager.group_key(), group.id)
-
-        # Проверки
-        assert result is True
-        found = next((item for item in manager.get(storage_manager.group_key()) if item.id == group.id), None)
-        assert found is None
-    finally:
-        manager.delete(storage_manager.group_key(), group.id)
-
-
-def test_storage_manager_delete_non_existing_returns_false():
-    """
-    Проверка возврата False при удалении несуществующего объекта.
+    Проверка соблюдения принципа SRP: у базового storage_manager
+    отсутствуют методы update и delete.
     """
     # Подготовка
     manager = storage_manager()
 
     # Действие
-    result = manager.delete(storage_manager.group_key(), "non-existent-id")
+    has_update = hasattr(manager, "update")
+    has_delete = hasattr(manager, "delete")
 
     # Проверки
-    assert result is False
+    assert has_update is False
+    assert has_delete is False
+
+
+def test_storage_manager_save_and_load_contract():
+    """
+    Проверка контракта сохранения и загрузки данных через save и load.
+    """
+    # Подготовка
+    manager = storage_manager()
+    group = nomenclature_group_model("Тестовая группа save_load")
+
+    try:
+        # Действие
+        saved = manager.save(storage_manager.group_key(), group)
+        loaded = manager.collection(storage_manager.group_key())
+
+        # Проверки
+        assert saved is True
+        assert group in loaded
+    finally:
+        loaded = manager.collection(storage_manager.group_key())
+        if group in loaded:
+            loaded.remove(group)
+
+
+def test_storage_manager_load_lsp_contract(tmp_path):
+    """
+    Проверка соответствия storage_manager контракту abstract_manager.load:
+    - load() без аргументов инициализирует/конвертирует первичные данные
+    - load(file_name) выполняет загрузку из JSON-файла
+    """
+    # Подготовка
+    manager = storage_manager()
+    saved_state = {key: list(manager.collection(key)) for key in list(manager.data.keys())}
+    temp_file = tmp_path / "test_load_export.json"
+    manager.export_all_to_json(str(temp_file))
+
+    try:
+        # Действие
+        result_default = manager.load()
+        result_file = manager.load(str(temp_file))
+
+        # Проверки
+        assert result_default is None
+        assert result_file is None
+        assert len(manager.collection(storage_manager.range_key())) > 0
+    finally:
+        for key, items in saved_state.items():
+            col = manager.collection(key)
+            col.clear()
+            col.extend(items)
+
+
+def test_handler_update_visibility_in_storage():
+    """
+    Проверка механики обновления сущности через хендлер и подтверждение
+    видимости изменения в хранилище storage_manager.
+    """
+    # Подготовка
+    manager = storage_manager()
+    group = nomenclature_group_model("Группа до обновления")
+    manager.save(storage_manager.group_key(), group)
+    handler = group_handler(manager)
+    update_payload = {"name": "Группа после обновления"}
+
+    try:
+        # Действие
+        response, status = handler.update(group.id, update_payload)
+
+        # Проверки
+        assert status == 200
+        assert response["name"] == "Группа после обновления"
+        stored_item = next((item for item in manager.collection(storage_manager.group_key()) if item.id == group.id), None)
+        assert stored_item is not None
+        assert stored_item.name == "Группа после обновления"
+    finally:
+        collection = manager.collection(storage_manager.group_key())
+        to_remove = next((item for item in collection if item.id == group.id), None)
+        if to_remove is not None:
+            collection.remove(to_remove)
+
+
+def test_handler_update_non_existing_returns_404():
+    """
+    Проверка возврата ошибки 404 хендлером при попытке обновления несуществующей сущности.
+    """
+    # Подготовка
+    manager = storage_manager()
+    handler = group_handler(manager)
+
+    # Действие
+    response, status = handler.update("non-existent-id", {"name": "Любое имя"})
+
+    # Проверки
+    assert status == 404
+    assert "error" in response
+
+
+def test_handler_delete_visibility_in_storage():
+    """
+    Проверка механики удаления сущности через хендлер и подтверждение
+    видимости удаления в хранилище storage_manager.
+    """
+    # Подготовка
+    manager = storage_manager()
+    group = nomenclature_group_model("Группа для удаления хендлером")
+    manager.save(storage_manager.group_key(), group)
+    handler = group_handler(manager)
+
+    try:
+        # Действие
+        response, status = handler.delete(group.id)
+
+        # Проверки
+        assert status == 204
+        assert response == ""
+        stored_item = next((item for item in manager.collection(storage_manager.group_key()) if item.id == group.id), None)
+        assert stored_item is None
+    finally:
+        collection = manager.collection(storage_manager.group_key())
+        to_clean = next((item for item in collection if item.id == group.id), None)
+        if to_clean is not None:
+            collection.remove(to_clean)
+
+
+def test_handler_delete_non_existing_returns_404():
+    """
+    Проверка возврата ошибки 404 хендлером при удалении несуществующей сущности.
+    """
+    # Подготовка
+    manager = storage_manager()
+    handler = group_handler(manager)
+
+    # Действие
+    response, status = handler.delete("non-existent-id")
+
+    # Проверки
+    assert status == 404
+    assert "error" in response
 
 
 def test_storage_manager_organization_and_settings_keys():
@@ -462,24 +549,36 @@ def test_storage_manager_organization_and_settings_keys():
     assert manager.get_by_type("settings") is not None
 
 
-def test_storage_manager_update_with_id_change():
+def test_handler_update_with_id_change_visibility_in_storage():
     """
-    Проверка обновления объекта с изменением идентификатора.
+    Проверка обновления сущности со сменой идентификатора через хендлер
+    и подтверждение видимости изменения в хранилище.
     """
     # Подготовка
     manager = storage_manager()
-    group = nomenclature_group_model("Группа со сменой ID")
-    manager.add(storage_manager.group_key(), group)
-    new_group = nomenclature_group_model.create_from_dict({"id": "new-group-id", "name": "Новое имя"})
+    group = nomenclature_group_model("Группа с новым ID")
+    manager.save(storage_manager.group_key(), group)
+    handler = group_handler(manager)
+    new_id = "new-custom-group-id"
+    payload = {"id": new_id, "name": "Группа с новым именем"}
 
     try:
         # Действие
-        result = manager.update(storage_manager.group_key(), new_group, entity_id=group.id)
+        response, status = handler.update(group.id, payload)
 
         # Проверки
-        assert result is True
-        assert manager.delete(storage_manager.group_key(), "new-group-id") is True
+        assert status == 200
+        assert response["id"] == new_id
+        collection = manager.collection(storage_manager.group_key())
+        old_found = next((item for item in collection if item.id == group.id), None)
+        new_found = next((item for item in collection if item.id == new_id), None)
+        assert old_found is None
+        assert new_found is not None
+        assert new_found.name == "Группа с новым именем"
     finally:
-        manager.delete(storage_manager.group_key(), group.id)
-        manager.delete(storage_manager.group_key(), "new-group-id")
+        collection = manager.collection(storage_manager.group_key())
+        for tid in (group.id, new_id):
+            item = next((x for x in collection if x.id == tid), None)
+            if item is not None:
+                collection.remove(item)
 

@@ -1,4 +1,4 @@
-from src.logics.handlers.base_handler import base_crud_handler
+from src.logics.handlers.base_crud_handler import base_crud_handler
 from src.logics.storage_manager import storage_manager
 from src.models.nomenclature_group_model import nomenclature_group_model
 

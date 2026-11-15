@@ -24,9 +24,10 @@ def test_not_raise_settings_manager_load():
     manager = settings_manager()
 
     # Действие
-    manager.load()
+    result = manager.load()
 
     # Проверки
+    assert result is None
     assert manager.is_loaded is True
 
 
@@ -53,9 +54,10 @@ def test_is_loaded_flag_true_after_load():
     manager = settings_manager()
 
     # Действие
-    manager.load()
+    result = manager.load()
 
     # Проверки
+    assert result is None
     assert manager.is_loaded is True
 
 

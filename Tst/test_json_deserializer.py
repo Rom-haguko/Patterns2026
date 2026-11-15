@@ -410,7 +410,7 @@ def test_round_trip_export_import_matches_storage_manager(tmp_path):
     ]
 
     for key in collection_keys:
-        original_items = manager.get(key)
+        original_items = manager.collection(key)
         restored_items = restored.get(key, [])
 
         assert len(original_items) == len(restored_items), f"Количество сущностей не совпадает для ключа {key}"
@@ -422,7 +422,7 @@ def test_round_trip_export_import_matches_storage_manager(tmp_path):
             assert orig.name == loaded.name
 
     # Дополнительные проверки доменных атрибутов рецепта
-    original_recipes = manager.get(storage_manager.recipe_key())
+    original_recipes = manager.collection(storage_manager.recipe_key())
     restored_recipes = restored.get(storage_manager.recipe_key())
     for orig_rec, loaded_rec in zip(original_recipes, restored_recipes):
         assert orig_rec.gross_weight == pytest.approx(loaded_rec.gross_weight, rel=1e-3)
@@ -474,7 +474,7 @@ def test_storage_manager_import_all_from_json_method(tmp_path):
     # Проверки
     assert success is True
     # Поскольку сущности с такими id уже в хранилище, дубликаты не должны добавиться (add возвращает False)
-    assert len(manager.get(storage_manager.range_key())) == 5
+    assert len(manager.collection(storage_manager.range_key())) == 5
 
 
 def test_identity_map_preserves_shared_instance():
@@ -641,31 +641,39 @@ def test_storage_manager_import_dynamic_order_of_collections(tmp_path):
     """
     # Подготовка
     manager = storage_manager()
+    saved_state = {key: list(manager.collection(key)) for key in list(manager.data.keys())}
     reversed_snapshot = tmp_path / "reversed_order.json"
     data = {
-        storage_manager.recipe_key(): manager.get(storage_manager.recipe_key()),
-        storage_manager.storage_key(): manager.get(storage_manager.storage_key()),
-        storage_manager.nomenclature_key(): manager.get(storage_manager.nomenclature_key()),
-        storage_manager.group_key(): manager.get(storage_manager.group_key()),
-        storage_manager.range_key(): manager.get(storage_manager.range_key()),
+        storage_manager.recipe_key(): list(manager.collection(storage_manager.recipe_key())),
+        storage_manager.storage_key(): list(manager.collection(storage_manager.storage_key())),
+        storage_manager.nomenclature_key(): list(manager.collection(storage_manager.nomenclature_key())),
+        storage_manager.group_key(): list(manager.collection(storage_manager.group_key())),
+        storage_manager.range_key(): list(manager.collection(storage_manager.range_key())),
     }
     json_serializer().to_json_file(data, str(reversed_snapshot))
 
-    # Действие
-    success = manager.import_all_from_json(str(reversed_snapshot), clear_existing=True)
+    try:
+        # Действие
+        success = manager.import_all_from_json(str(reversed_snapshot), clear_existing=True)
 
-    # Проверки
-    assert success is True
-    assert len(manager.get(storage_manager.range_key())) > 0
-    assert len(manager.get(storage_manager.nomenclature_key())) > 0
-    assert len(manager.get(storage_manager.recipe_key())) > 0
+        # Проверки
+        assert success is True
+        assert len(manager.collection(storage_manager.range_key())) > 0
+        assert len(manager.collection(storage_manager.nomenclature_key())) > 0
+        assert len(manager.collection(storage_manager.recipe_key())) > 0
+    finally:
+        for key, items in saved_state.items():
+            col = manager.collection(key)
+            col.clear()
+            col.extend(items)
 
 
 def test_models_direct_create_from_dict():
     """
-    Проверка прямого создания доменных моделей через их фабричные методы create_from_dict.
+    Проверка создания доменных моделей из словарей через фабрику-десериализатор.
     """
     # Подготовка
+    factory = deserializer_factory()
     unit_data = {
         "id": "direct-unit-1",
         "name": "миллилитр",
@@ -685,9 +693,9 @@ def test_models_direct_create_from_dict():
     }
 
     # Действие
-    unit = range_model.create_from_dict(unit_data)
-    group = nomenclature_group_model.create_from_dict(group_data)
-    nom = nomenclature_model.create_from_dict(nom_data)
+    unit = factory.deserialize_value(unit_data, range_model)
+    group = factory.deserialize_value(group_data, nomenclature_group_model)
+    nom = factory.deserialize_value(nom_data, nomenclature_model)
 
     # Проверки
     assert isinstance(unit, range_model)
@@ -707,16 +715,17 @@ def test_models_direct_create_from_dict():
 
 def test_models_create_from_dict_invalid_data_type_raises():
     """
-    Проверка выброса arguments_exception при передаче некорректного типа в create_from_dict моделей.
+    Проверка выброса arguments_exception при передаче некорректного типа в десериализатор моделей.
     """
     # Подготовка
+    factory = deserializer_factory()
     invalid_payload = "не словарь"
     errors = []
 
     # Действие
     for model_cls in (range_model, nomenclature_group_model, nomenclature_model, recipe_model):
         try:
-            model_cls.create_from_dict(invalid_payload)
+            factory.deserialize_value(invalid_payload, model_cls)
         except arguments_exception as exc:
             errors.append(exc)
 

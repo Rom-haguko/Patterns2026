@@ -1,4 +1,4 @@
-from src.logics.handlers.base_handler import base_crud_handler
+from src.logics.handlers.base_crud_handler import base_crud_handler
 from src.logics.storage_manager import storage_manager
 from src.models.recipe_model import recipe_model
 

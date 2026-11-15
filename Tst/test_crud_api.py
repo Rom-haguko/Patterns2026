@@ -39,7 +39,7 @@ def client():
     manager = storage_manager()
     s_mgr = settings_manager()
     saved_settings = s_mgr.settings
-    snapshot = {key: list(manager.get(key)) for key in list(manager.data.keys())}
+    snapshot = {key: list(manager.collection(key)) for key in list(manager.data.keys())}
     api.app._got_first_request = False
     with api.test_client() as test_client:
         yield connexion_test_client_wrapper(test_client)
@@ -76,7 +76,7 @@ def test_get_range_by_id_returns_200(client):
     """
     # Подготовка
     manager = storage_manager()
-    first_range = manager.get(storage_manager.range_key())[0]
+    first_range = manager.collection(storage_manager.range_key())[0]
     endpoint = f"/api/range/{first_range.id}"
 
     # Действие
@@ -150,7 +150,7 @@ def test_update_linked_range_id_conflict_returns_409(client):
     """
     # Подготовка
     manager = storage_manager()
-    linked_range = manager.get(storage_manager.range_key())[0]
+    linked_range = manager.collection(storage_manager.range_key())[0]
     endpoint = f"/api/range/{linked_range.id}"
     update_payload = {"id": "new-conflicting-id", "name": "новое_имя", "conversion_factor": 1}
 
@@ -189,7 +189,7 @@ def test_delete_linked_range_returns_409(client):
     """
     # Подготовка
     manager = storage_manager()
-    linked_range_id = manager.get(storage_manager.range_key())[0].id
+    linked_range_id = manager.collection(storage_manager.range_key())[0].id
     endpoint = f"/api/range/{linked_range_id}"
 
     # Действие
@@ -230,7 +230,7 @@ def test_get_nomenclature_group_by_id_returns_200(client):
     """
     # Подготовка
     manager = storage_manager()
-    group = manager.get(storage_manager.group_key())[0]
+    group = manager.collection(storage_manager.group_key())[0]
     endpoint = f"/api/nomenclature-group/{group.id}"
 
     # Действие
@@ -303,7 +303,7 @@ def test_update_linked_group_id_conflict_returns_409(client):
     """
     # Подготовка
     manager = storage_manager()
-    linked_group = manager.get(storage_manager.group_key())[0]
+    linked_group = manager.collection(storage_manager.group_key())[0]
     endpoint = f"/api/nomenclature-group/{linked_group.id}"
     payload = {"id": "new-conflicting-group-id", "name": "Новое имя группы"}
 
@@ -342,7 +342,7 @@ def test_delete_linked_group_returns_409(client):
     """
     # Подготовка
     manager = storage_manager()
-    linked_group_id = manager.get(storage_manager.group_key())[0].id
+    linked_group_id = manager.collection(storage_manager.group_key())[0].id
     endpoint = f"/api/nomenclature-group/{linked_group_id}"
 
     # Действие
@@ -383,7 +383,7 @@ def test_get_nomenclature_by_id_returns_200(client):
     """
     # Подготовка
     manager = storage_manager()
-    nom = manager.get(storage_manager.nomenclature_key())[0]
+    nom = manager.collection(storage_manager.nomenclature_key())[0]
     endpoint = f"/api/nomenclature/{nom.id}"
 
     # Действие
@@ -418,8 +418,8 @@ def test_create_nomenclature_returns_201(client):
     """
     # Подготовка
     manager = storage_manager()
-    group_id = manager.get(storage_manager.group_key())[0].id
-    range_id = manager.get(storage_manager.range_key())[0].id
+    group_id = manager.collection(storage_manager.group_key())[0].id
+    range_id = manager.collection(storage_manager.range_key())[0].id
     endpoint = "/api/nomenclature"
     payload = {
         "name": "Новая номенклатура",
@@ -444,8 +444,8 @@ def test_update_nomenclature_valid(client):
     """
     # Подготовка
     manager = storage_manager()
-    group_id = manager.get(storage_manager.group_key())[0].id
-    range_id = manager.get(storage_manager.range_key())[0].id
+    group_id = manager.collection(storage_manager.group_key())[0].id
+    range_id = manager.collection(storage_manager.range_key())[0].id
     create_response = client.post("/api/nomenclature", json={
         "name": "Номенклатура под изменение",
         "full_name": "Номенклатура под изменение полное наименование",
@@ -477,9 +477,9 @@ def test_update_linked_nomenclature_id_conflict_returns_409(client):
     """
     # Подготовка
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
     linked_nomenclature = next(
-        n for n in manager.get(storage_manager.nomenclature_key())
+        n for n in manager.collection(storage_manager.nomenclature_key())
         if any(
             getattr(row, "nomenclature", None) is not None
             and getattr(row.nomenclature, "id", None) == n.id
@@ -513,8 +513,8 @@ def test_delete_free_nomenclature_returns_204_and_404_on_get(client):
     """
     # Подготовка
     manager = storage_manager()
-    group_id = manager.get(storage_manager.group_key())[0].id
-    range_id = manager.get(storage_manager.range_key())[0].id
+    group_id = manager.collection(storage_manager.group_key())[0].id
+    range_id = manager.collection(storage_manager.range_key())[0].id
     create_response = client.post("/api/nomenclature", json={
         "name": "Свободная номенклатура",
         "full_name": "Свободная номенклатура полное описание",
@@ -539,9 +539,9 @@ def test_delete_linked_nomenclature_returns_409(client):
     """
     # Подготовка
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
     linked_nomenclature = next(
-        n for n in manager.get(storage_manager.nomenclature_key())
+        n for n in manager.collection(storage_manager.nomenclature_key())
         if any(
             getattr(row, "nomenclature", None) is not None
             and getattr(row.nomenclature, "id", None) == n.id
@@ -570,7 +570,7 @@ def test_delete_target_nomenclature_returns_409_with_recipe_dependencies(client)
     # Подготовка
     manager = storage_manager()
     target_nomenclature = next(
-        n for n in manager.get(storage_manager.nomenclature_key())
+        n for n in manager.collection(storage_manager.nomenclature_key())
         if n.name == "Пицца Маргарита"
     )
     endpoint = f"/api/nomenclature/{target_nomenclature.id}"
@@ -613,7 +613,7 @@ def test_get_storage_by_id_returns_200(client):
     """
     # Подготовка
     manager = storage_manager()
-    first_storage = manager.get(storage_manager.storage_key())[0]
+    first_storage = manager.collection(storage_manager.storage_key())[0]
     endpoint = f"/api/storage/{first_storage.id}"
 
     # Действие
@@ -726,7 +726,7 @@ def test_get_recipe_by_id_returns_200(client):
     """
     # Подготовка
     manager = storage_manager()
-    first_recipe = manager.get(storage_manager.recipe_key())[0]
+    first_recipe = manager.collection(storage_manager.recipe_key())[0]
     endpoint = f"/api/recipe/{first_recipe.id}"
 
     # Действие
@@ -1144,10 +1144,10 @@ def test_settings_manager_uses_deserialization():
 
     try:
         # Действие
-        load_result = manager.load()
+        manager.load()
 
         # Проверки
-        assert load_result is True
+        assert manager.is_loaded is True
         assert isinstance(manager.settings, settings_model)
         assert manager.settings.company is not None
         assert bool(manager.settings.boss_name.strip())
@@ -1235,9 +1235,9 @@ def test_update_linked_recipe_id_conflict_returns_409(client):
     """
     # Подготовка
     manager = storage_manager()
-    linked_nomenclature = next(n for n in manager.get(storage_manager.nomenclature_key()) if n.recipe is not None)
+    linked_nomenclature = next(n for n in manager.collection(storage_manager.nomenclature_key()) if n.recipe is not None)
     linked_recipe = linked_nomenclature.recipe
-    manager.add(storage_manager.recipe_key(), linked_recipe)
+    manager.save(storage_manager.recipe_key(), linked_recipe)
     endpoint = f"/api/recipe/{linked_recipe.id}"
     payload = {
         "id": "new-recipe-conflict-id",
@@ -1263,9 +1263,9 @@ def test_delete_linked_recipe_returns_409(client):
     """
     # Подготовка
     manager = storage_manager()
-    linked_nomenclature = next(n for n in manager.get(storage_manager.nomenclature_key()) if n.recipe is not None)
+    linked_nomenclature = next(n for n in manager.collection(storage_manager.nomenclature_key()) if n.recipe is not None)
     linked_recipe = linked_nomenclature.recipe
-    manager.add(storage_manager.recipe_key(), linked_recipe)
+    manager.save(storage_manager.recipe_key(), linked_recipe)
     endpoint = f"/api/recipe/{linked_recipe.id}"
 
     # Действие
@@ -1285,7 +1285,7 @@ def test_update_linked_organization_id_conflict_returns_409(client):
     """
     # Подготовка
     manager = storage_manager()
-    org = manager.get(storage_manager.organization_key())[0]
+    org = manager.collection(storage_manager.organization_key())[0]
     endpoint = f"/api/organization/{org.id}"
     payload = {
         "id": "new-org-conflict-id",
@@ -1317,14 +1317,372 @@ def test_update_free_range_id_success(client):
     created = create_response.get_json()
     old_id = created["id"]
     new_id = f"{old_id}-renamed"
+    update_payload = {"id": new_id, "name": "Временная переименованная", "conversion_factor": 2}
 
     # Действие
-    update_payload = {"id": new_id, "name": "Временная переименованная", "conversion_factor": 2}
     update_response = client.put(f"/api/range/{old_id}", json=update_payload)
+    get_old_response = client.get(f"/api/range/{old_id}")
+    get_new_response = client.get(f"/api/range/{new_id}")
 
     # Проверки
     assert update_response.status_code == 200
     updated_data = update_response.get_json()
     assert updated_data["id"] == new_id
-    assert client.get(f"/api/range/{old_id}").status_code == 404
-    assert client.get(f"/api/range/{new_id}").status_code == 200
+    assert get_old_response.status_code == 404
+    assert get_new_response.status_code == 200
+
+
+def test_update_entity_with_isolated_context_persists_in_get(client):
+    """
+    Проверка корректного обновления полей сущности через PUT и отображения изменений в последующем GET:
+    изолированный транзакционный контекст десериализации гарантирует отсутствие кэширования старых значений.
+    """
+    # Подготовка
+    custom_id = "range-update-isolated-1"
+    create_payload = {"id": custom_id, "name": "Исходная единица", "conversion_factor": 1}
+    client.post("/api/range", json=create_payload)
+    update_payload = {"name": "Обновленное наименование", "conversion_factor": 10}
+
+    # Действие
+    put_response = client.put(f"/api/range/{custom_id}", json=update_payload)
+    get_response = client.get(f"/api/range/{custom_id}")
+
+    # Проверки
+    assert put_response.status_code == 200
+    assert get_response.status_code == 200
+    fetched_data = get_response.get_json()
+    assert fetched_data["id"] == custom_id
+    assert fetched_data["name"] == "Обновленное наименование"
+    assert fetched_data["conversion_factor"] == 10
+
+
+def test_update_range_invalid_name_returns_400(client):
+    """
+    Проверка возврата статуса 400 при отправке некорректного наименования на PUT /api/range.
+    """
+    # Подготовка
+    all_response = client.get("/api/range")
+    range_id = all_response.get_json()[0]["id"]
+    invalid_payload = {"name": "", "conversion_factor": 1}
+
+    # Действие
+    response = client.put(f"/api/range/{range_id}", json=invalid_payload)
+
+    # Проверки
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_update_recipe_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке обновления несуществующего рецепта.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-recipe-id"
+    payload = {"name": "Тестовый рецепт"}
+
+    # Действие
+    response = client.put(f"/api/recipe/{non_existent_id}", json=payload)
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_delete_recipe_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке удаления несуществующего рецепта.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-recipe-id"
+
+    # Действие
+    response = client.delete(f"/api/recipe/{non_existent_id}")
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_update_recipe_invalid_payload_returns_400(client):
+    """
+    Проверка возврата статуса 400 при отправке некорректных данных на PUT /api/recipe.
+    """
+    # Подготовка
+    all_recipes = client.get("/api/recipe").get_json()
+    recipe_id = all_recipes[0]["id"]
+    invalid_payload = {"name": "", "cooking_time": 10}
+
+    # Действие
+    response = client.put(f"/api/recipe/{recipe_id}", json=invalid_payload)
+
+    # Проверки
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_update_nomenclature_group_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке обновления несуществующей группы номенклатуры.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-group-id"
+    payload = {"name": "Новая группа"}
+
+    # Действие
+    response = client.put(f"/api/nomenclature-group/{non_existent_id}", json=payload)
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_delete_nomenclature_group_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке удаления несуществующей группы номенклатуры.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-group-id"
+
+    # Действие
+    response = client.delete(f"/api/nomenclature-group/{non_existent_id}")
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_update_nomenclature_group_invalid_payload_returns_400(client):
+    """
+    Проверка возврата статуса 400 при отправке некорректных данных на PUT /api/nomenclature-group.
+    """
+    # Подготовка
+    all_groups = client.get("/api/nomenclature-group").get_json()
+    group_id = all_groups[0]["id"]
+    invalid_payload = {"name": ""}
+
+    # Действие
+    response = client.put(f"/api/nomenclature-group/{group_id}", json=invalid_payload)
+
+    # Проверки
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_update_storage_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке обновления несуществующего склада.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-storage-id"
+    payload = {"name": "Тестовый склад", "address": "ул. Новая"}
+
+    # Действие
+    response = client.put(f"/api/storage/{non_existent_id}", json=payload)
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_delete_storage_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке удаления несуществующего склада.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-storage-id"
+
+    # Действие
+    response = client.delete(f"/api/storage/{non_existent_id}")
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_update_storage_invalid_payload_returns_400(client):
+    """
+    Проверка возврата статуса 400 при отправке некорректных данных на PUT /api/storage.
+    """
+    # Подготовка
+    all_storages = client.get("/api/storage").get_json()
+    storage_id = all_storages[0]["id"]
+    invalid_payload = {"name": ""}
+
+    # Действие
+    response = client.put(f"/api/storage/{storage_id}", json=invalid_payload)
+
+    # Проверки
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_update_nomenclature_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке обновления несуществующей номенклатуры.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-nomenclature-id"
+    payload = {"name": "Новая позиция"}
+
+    # Действие
+    response = client.put(f"/api/nomenclature/{non_existent_id}", json=payload)
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_delete_nomenclature_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке удаления несуществующей номенклатуры.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-nomenclature-id"
+
+    # Действие
+    response = client.delete(f"/api/nomenclature/{non_existent_id}")
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_update_nomenclature_invalid_payload_returns_400(client):
+    """
+    Проверка возврата статуса 400 при отправке некорректных данных на PUT /api/nomenclature.
+    """
+    # Подготовка
+    all_items = client.get("/api/nomenclature").get_json()
+    item_id = all_items[0]["id"]
+    invalid_payload = {"name": ""}
+
+    # Действие
+    response = client.put(f"/api/nomenclature/{item_id}", json=invalid_payload)
+
+    # Проверки
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_update_organization_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке обновления несуществующей организации.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-org-id"
+    payload = {"name": "ООО Новая"}
+
+    # Действие
+    response = client.put(f"/api/organization/{non_existent_id}", json=payload)
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_delete_organization_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке удаления несуществующей организации.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-org-id"
+
+    # Действие
+    response = client.delete(f"/api/organization/{non_existent_id}")
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_update_organization_invalid_payload_returns_400(client):
+    """
+    Проверка возврата статуса 400 при отправке некорректных данных на PUT /api/organization.
+    """
+    # Подготовка
+    all_orgs = client.get("/api/organization").get_json()
+    org_id = all_orgs[0]["id"]
+    invalid_payload = {
+        "name": "Тестовая организация",
+        "inn": "123",
+        "bik": "044525225",
+        "account": "40702810938000012345",
+        "ownership_form": "ООО",
+        "corr_account": "30101810400000000225",
+    }
+
+    # Действие
+    response = client.put(f"/api/organization/{org_id}", json=invalid_payload)
+
+    # Проверки
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_update_settings_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке обновления несуществующих настроек.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-settings-id"
+    payload = {"boss_name": "Новый директор"}
+
+    # Действие
+    response = client.put(f"/api/settings/{non_existent_id}", json=payload)
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_delete_settings_not_found_returns_404(client):
+    """
+    Проверка возврата статуса 404 при попытке удаления несуществующих настроек.
+    """
+    # Подготовка
+    non_existent_id = "non-existent-settings-id"
+
+    # Действие
+    response = client.delete(f"/api/settings/{non_existent_id}")
+
+    # Проверки
+    assert response.status_code == 404
+    assert "error" in response.get_json()
+
+
+def test_update_settings_invalid_payload_returns_400(client):
+    """
+    Проверка возврата статуса 400 при отправке некорректных данных на PUT /api/settings.
+    """
+    # Подготовка
+    all_settings = client.get("/api/settings").get_json()
+    settings_id = all_settings[0]["id"]
+    invalid_payload = {"response_format": "INVALID_FORMAT_XYZ"}
+
+    # Действие
+    response = client.put(f"/api/settings/{settings_id}", json=invalid_payload)
+
+    # Проверки
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_delete_base_range_with_derived_units_returns_409(client):
+    """
+    Проверка возврата статуса 409 при попытке удаления базовой единицы измерения (грамм),
+    на которую ссылается килограмм.
+    """
+    # Подготовка
+    all_ranges = client.get("/api/range").get_json()
+    gram = next((r for r in all_ranges if r["name"] == "грамм"), None)
+    assert gram is not None
+
+    # Действие
+    response = client.delete(f"/api/range/{gram['id']}")
+
+    # Проверки
+    assert response.status_code == 409
+    data = response.get_json()
+    assert "error" in data
+    assert "dependencies" in data

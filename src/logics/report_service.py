@@ -20,7 +20,7 @@ class report_service:
         """
         Ищет рецепт в хранилище по части наименования.
         """
-        recipes = self.__storage.get(storage_manager.recipe_key())
+        recipes = self.__storage.collection(storage_manager.recipe_key())
         return next((r for r in recipes if name_part in r.name), None)
 
     def get_entity(self, entity_type: str, entity_code: str):

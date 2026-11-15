@@ -4,6 +4,7 @@ from src.core.exception import operation_exception
 from src.core.file_resolver import file_path_resolver
 from src.core.validator import validator
 from src.models.settings_model import settings_model
+from src.logics.deserializer_factory import deserializer_factory
 
 
 class settings_manager(abstract_manager):
@@ -65,33 +66,20 @@ class settings_manager(abstract_manager):
     def convert(self) -> bool:
         """
         Обработка загруженных сырых данных JSON и преобразование в модель settings_model
-        с использованием фабрики create_from_dict и контекста десериализации.
+        с использованием фабрики-десериализатора deserializer_factory.
         """
         if not isinstance(self.__data, dict):
             return False
 
-        normalized = dict(self.__data)
-
-        if "company" in normalized and isinstance(normalized["company"], dict):
-            comp_data = dict(normalized["company"])
-            if not comp_data.get("inn") and comp_data.get("inn_kpp"):
-                inn_part = str(comp_data["inn_kpp"]).split("/")[0].strip()
-                if len(inn_part) in (10, 12) and inn_part.isdigit():
-                    comp_data["inn"] = inn_part
-            normalized["company"] = comp_data
-
-            if not normalized.get("boss_name") and comp_data.get("ceo"):
-                normalized["boss_name"] = str(comp_data["ceo"]).strip()
-
-        self.__settings = settings_model.create_from_dict(normalized)
+        factory = deserializer_factory()
+        self.__settings = factory.deserialize_value(self.__data, settings_model)
         return True
 
-    def load(self, file_name: str = "") -> bool:
+    def load(self, file_name: str = "") -> None:
         """
-        Загрузка данных из конфигурационного файла.
+        Загрузка данных из конфигурационного файла согласно контракту abstract_manager.
 
         :param file_name: Путь к файлу конфигурации (по умолчанию settings.json).
-        :return: True при успешной загрузке.
         :raises operation_exception: При ошибке загрузки или валидации данных.
         """
         inner_file_name = file_name.strip() if file_name and file_name.strip() != "" else self.__default_file_name
@@ -103,6 +91,5 @@ class settings_manager(abstract_manager):
             with open(resolved_file, "r", encoding="utf-8") as file:
                 self.__data = json.load(file)
                 self.__is_loaded = self.convert()
-                return self.__is_loaded
         except Exception as ex:
             raise operation_exception(f"Ошибка при загрузке и обработке данных: {ex}")
