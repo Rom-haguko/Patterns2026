@@ -7,11 +7,20 @@ from src.logics.report_data_mapper import report_data_mapper
 @pytest.fixture
 def client():
     """
-    Фикстура для создания тестового клиента Flask приложения.
+    Фикстура для создания тестового клиента приложения Connexion.
     """
-    app = api.app
-    app.config["TESTING"] = True
-    with app.test_client() as test_client:
+    def wrap_response(response):
+        if not hasattr(response, "get_data"):
+            response.get_data = lambda as_text=False: response.text if as_text else response.content
+        if not hasattr(response, "data"):
+            response.data = response.content
+        if not hasattr(response, "get_json"):
+            response.get_json = lambda: response.json() if response.text else None
+        return response
+
+    with api.test_client() as test_client:
+        orig_get = test_client.get
+        test_client.get = lambda *args, **kwargs: wrap_response(orig_get(*args, **kwargs))
         yield test_client
 
 
@@ -38,7 +47,7 @@ def test_api_get_report_csv_recipe_download(client):
     """
     # Подготовка
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
     recipe = recipes[0]
 
     # Действие
@@ -59,7 +68,7 @@ def test_api_get_report_markdown_recipe_download(client):
     """
     # Подготовка
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
     recipe = recipes[0]
 
     # Действие
@@ -80,7 +89,7 @@ def test_api_get_report_xml_nomenclature_structured_text(client):
     """
     # Подготовка
     manager = storage_manager()
-    items = manager.get(storage_manager.nomenclature_key())
+    items = manager.collection(storage_manager.nomenclature_key())
     nom = items[0]
 
     # Действие
@@ -102,7 +111,7 @@ def test_api_get_report_html_range_structured_text(client):
     """
     # Подготовка
     manager = storage_manager()
-    ranges = manager.get(storage_manager.range_key())
+    ranges = manager.collection(storage_manager.range_key())
     unit = ranges[0]
 
     # Действие
@@ -123,7 +132,7 @@ def test_api_get_report_txt_recipe_success(client):
     """
     # Подготовка
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
     recipe = recipes[0]
 
     # Действие
@@ -143,7 +152,7 @@ def test_api_get_report_default_endpoint(client):
     """
     # Подготовка
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
     recipe = recipes[0]
 
     # Действие
@@ -160,7 +169,7 @@ def test_api_get_report_by_query_params(client):
     """
     # Подготовка
     manager = storage_manager()
-    items = manager.get(storage_manager.nomenclature_key())
+    items = manager.collection(storage_manager.nomenclature_key())
     nom = items[0]
 
     # Действие
@@ -177,7 +186,7 @@ def test_api_error_invalid_format(client):
     """
     # Подготовка
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
     recipe = recipes[0]
 
     # Действие

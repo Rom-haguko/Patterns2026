@@ -309,7 +309,7 @@ def test_first_start_recipes_present_in_storage():
     manager = storage_manager()
 
     # Действие
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
 
     # Проверки
     assert isinstance(recipes, list)
@@ -325,7 +325,7 @@ def test_first_start_contains_pizza_margarita():
     manager = storage_manager()
 
     # Действие
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
     margarita = next((r for r in recipes if "Пицца Маргарита" in r.name), None)
 
     # Проверки
@@ -339,7 +339,7 @@ def test_first_start_margarita_contains_semi_finished():
     """
     # Подготовка
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
 
     # Действие
     margarita = next((r for r in recipes if r.name == "Пицца Маргарита"), None)
@@ -360,7 +360,7 @@ def test_first_start_contains_recipe_with_packaging():
     """
     # Подготовка
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
 
     # Действие
     packaged_recipe = next((r for r in recipes if r.has_packaging), None)
@@ -379,7 +379,7 @@ def test_first_start_margarita_gross_and_net_weights():
     """
     # Подготовка
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
 
     # Действие
     margarita = next((r for r in recipes if r.name == "Пицца Маргарита"), None)

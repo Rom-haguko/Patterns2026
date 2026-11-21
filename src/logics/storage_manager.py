@@ -5,6 +5,8 @@ from src.models.nomenclature_model import nomenclature_model
 from src.models.range_model import range_model
 from src.models.storage_model import storage_model
 from src.models.recipe_model import recipe_model
+from src.models.organization_model import organization_model
+from src.models.settings_model import settings_model
 
 
 class storage_manager(abstract_manager):
@@ -14,12 +16,29 @@ class storage_manager(abstract_manager):
     номенклатуре, складам и технологическим картам (рецептам).
 
     Реализует паттерн Одиночка (Singleton) и контракт abstract_manager.
-    При первом создании экземпляра автоматически формирует первичные данные (convert)
-    с использованием фабричных методов доменных моделей.
+    Базовое хранилище отвечает исключительно за сохранение (save/add) и загрузку (load/get).
+    Любые операции изменения и удаления состояния инкапсулируются в сервисах.
     """
 
-    # Внутренний словарь-хранилище кешированных списков доменных сущностей
     __data: dict = {}
+    __entity_registry: dict[str, type] = {}
+
+    @classmethod
+    def register_entity_type(cls, model_class: type, *keys: str) -> None:
+        """
+        Регистрирует класс доменной модели в универсальном реестре хранилища.
+        """
+        if not isinstance(model_class, type):
+            return
+        name = model_class.__name__.lower()
+        cls.__entity_registry[name] = model_class
+        clean_name = name.replace("_model", "")
+        cls.__entity_registry[clean_name] = model_class
+        full_type = f"{model_class.__module__}.{model_class.__qualname__}".lower()
+        cls.__entity_registry[full_type] = model_class
+        for k in keys:
+            if isinstance(k, str) and k.strip():
+                cls.__entity_registry[k.strip().lower()] = model_class
 
     def __new__(cls, *args, **kwargs):
         """
@@ -27,7 +46,7 @@ class storage_manager(abstract_manager):
         """
         if not hasattr(cls, "instance"):
             cls.instance = object.__new__(cls)
-            cls.instance._initialized = False 
+            cls.instance._initialized = False
         return cls.instance
 
     def __init__(self):
@@ -38,15 +57,25 @@ class storage_manager(abstract_manager):
         if getattr(self, "_initialized", False):
             return
 
+        self.register_entity_type(range_model, "единица_измерения", "range")
+        self.register_entity_type(nomenclature_group_model, "группа_номенклатуры", "group", "nomenclature_group")
+        self.register_entity_type(nomenclature_model, "номенклатура", "nomenclature")
+        self.register_entity_type(storage_model, "склад", "storage")
+        self.register_entity_type(recipe_model, "рецепт", "recipe")
+        self.register_entity_type(organization_model, "организация", "organization", "company")
+        self.register_entity_type(settings_model, "настройки", "settings")
+
         self.__data = {}
         self.__data[self.range_key()] = []
         self.__data[self.nomenclature_key()] = []
         self.__data[self.group_key()] = []
         self.__data[self.storage_key()] = []
         self.__data[self.recipe_key()] = []
-        
-        self.convert()
+        self.__data[self.organization_key()] = []
+        self.__data[self.settings_key()] = []
         self._initialized = True
+
+        self.convert()
 
     def __eq__(self, other: object) -> bool:
         """
@@ -60,35 +89,49 @@ class storage_manager(abstract_manager):
         """
         Ключ доступа к коллекции единиц измерения (range_model).
         """
-        return "range_model"
+        return range_model.__name__
 
     @staticmethod
     def nomenclature_key() -> str:
         """
         Ключ доступа к коллекции номенклатурных позиций (nomenclature_model).
         """
-        return "nomenclature_model"
+        return nomenclature_model.__name__
 
     @staticmethod
     def group_key() -> str:
         """
         Ключ доступа к коллекции групп номенклатуры (nomenclature_group_model).
         """
-        return "nomenclature_group_model"
+        return nomenclature_group_model.__name__
 
     @staticmethod
     def storage_key() -> str:
         """
         Ключ доступа к коллекции складов (storage_model).
         """
-        return "storage_model"
+        return storage_model.__name__
 
     @staticmethod
     def recipe_key() -> str:
         """
         Ключ доступа к коллекции технологических карт и рецептов (recipe_model).
         """
-        return "recipe_model"
+        return recipe_model.__name__
+
+    @staticmethod
+    def organization_key() -> str:
+        """
+        Ключ доступа к коллекции организаций (organization_model).
+        """
+        return organization_model.__name__
+
+    @staticmethod
+    def settings_key() -> str:
+        """
+        Ключ доступа к коллекции настроек (settings_model).
+        """
+        return settings_model.__name__
 
     @property
     def data(self) -> dict:
@@ -97,9 +140,22 @@ class storage_manager(abstract_manager):
         """
         return self.__data
 
-    def get(self, key: str) -> list:
+    def load(self, file_name: str = "") -> None:
         """
-        Возвращает список объектов из кеша по ключу типа сущности.
+        Загружает данные из источника в хранилище согласно контракту abstract_manager.
+        При передаче пути к файлу импортирует данные из JSON, иначе выполняет convert().
+
+        :param file_name: Путь к файлу источника данных.
+        """
+        inner_file = file_name.strip() if file_name and isinstance(file_name, str) else ""
+        if inner_file:
+            self.import_all_from_json(inner_file)
+        else:
+            self.convert()
+
+    def collection(self, key: str) -> list:
+        """
+        Возвращает коллекцию сущностей по ключу из хранилища.
 
         :param key: Текстовый ключ коллекции (например, storage_manager.range_key()).
         :return: Список объектов соответствующей модели.
@@ -109,37 +165,33 @@ class storage_manager(abstract_manager):
             self.__data[key] = []
         return self.__data[key]
 
-    def get_by_type(self, entity_type: str) -> list:
+    def get_by_type(self, entity_type: object) -> list | None:
         """
-        Возвращает список сущностей по названию типа (номенклатура, рецепт и т.д.).
+        Возвращает список сущностей по типу класса или наименованию сущности.
         """
-        if not entity_type or not isinstance(entity_type, str):
+        if entity_type is None:
             return None
 
-        normalized = entity_type.strip().lower()
-        type_mapping = {
-            "номенклатура": self.nomenclature_key(),
-            "nomenclature": self.nomenclature_key(),
-            "nomenclature_model": self.nomenclature_key(),
-            "единица_измерения": self.range_key(),
-            "range": self.range_key(),
-            "range_model": self.range_key(),
-            "рецепт": self.recipe_key(),
-            "recipe": self.recipe_key(),
-            "recipe_model": self.recipe_key(),
-            "склад": self.storage_key(),
-            "storage": self.storage_key(),
-            "storage_model": self.storage_key(),
-            "группа_номенклатуры": self.group_key(),
-            "nomenclature_group_model": self.group_key(),
-        }
+        if isinstance(entity_type, type):
+            return self.collection(entity_type.__name__)
 
-        key = type_mapping.get(normalized)
-        if not key:
+        if not isinstance(entity_type, str):
             return None
-        return self.get(key)
 
-    def get_by_type_and_code(self, entity_type: str, code: str) -> object:
+        clean = entity_type.strip().lower()
+        if not clean:
+            return None
+
+        if clean in self.__data:
+            return self.collection(clean)
+
+        model_cls = self.__entity_registry.get(clean)
+        if model_cls is not None:
+            return self.collection(model_cls.__name__)
+
+        return None
+
+    def get_by_type_and_code(self, entity_type: object, code: str) -> object:
         """
         Поиск сущности в хранилище по ее типу и коду (id или наименованию).
         """
@@ -148,7 +200,7 @@ class storage_manager(abstract_manager):
             return None
 
         code_str = str(code).strip()
-        return next((item for item in collection if str(item.id) == code_str or str(item.name).strip() == code_str), None)
+        return next((item for item in collection if str(getattr(item, "id", "")) == code_str or str(getattr(item, "name", "")).strip() == code_str), None)
 
     def export_all_to_json(self, file_path: str) -> bool:
         """
@@ -158,16 +210,16 @@ class storage_manager(abstract_manager):
         :return: True при успешном экспорте
         """
         from src.logics.json_serializer import json_serializer
-        
+
         serializer = json_serializer()
         all_data = {
-            self.range_key(): self.get(self.range_key()),
-            self.nomenclature_key(): self.get(self.nomenclature_key()),
-            self.group_key(): self.get(self.group_key()),
-            self.storage_key(): self.get(self.storage_key()),
-            self.recipe_key(): self.get(self.recipe_key()),
+            self.range_key(): self.collection(self.range_key()),
+            self.nomenclature_key(): self.collection(self.nomenclature_key()),
+            self.group_key(): self.collection(self.group_key()),
+            self.storage_key(): self.collection(self.storage_key()),
+            self.recipe_key(): self.collection(self.recipe_key()),
         }
-        
+
         serializer.to_json_file(all_data, file_path)
         return True
 
@@ -195,23 +247,23 @@ class storage_manager(abstract_manager):
         for key, items in imported.items():
             if isinstance(items, list):
                 for item in items:
-                    self.add(key, item)
+                    self.save(key, item)
 
         return True
 
-    def add(self, key: str, item: object) -> bool:
+    def save(self, key: str, item: object) -> bool:
         """
-        Добавляет объект в коллекцию по ключу, если он ещё не присутствует.
-        Уникальность определяется через __eq__ доменной модели (сравнение по id).
+        Сохраняет объект доменной модели в коллекцию хранилища по ключу,
+        если он ещё не присутствует (контракт сохранения данных).
 
         :param key: Текстовый ключ коллекции.
-        :param item: Объект доменной модели для добавления.
-        :return: True, если объект добавлен; False, если дубликат.
+        :param item: Объект доменной модели для сохранения.
+        :return: True, если объект сохранен; False, если дубликат или None.
         """
         validator.validate(key, str)
         if item is None:
             return False
-        collection = self.get(key)
+        collection = self.collection(key)
         if item in collection:
             return False
         collection.append(item)
@@ -231,7 +283,21 @@ class storage_manager(abstract_manager):
         self._build_nomenclature()
         self._build_storages()
         self._build_recipes()
+        self._build_settings()
         return True
+
+    def _build_settings(self) -> None:
+        """
+        Загружает настройки и организацию из settings_manager в коллекции хранилища.
+        """
+        from src.logics.settings_manager import settings_manager
+        settings_mgr = settings_manager()
+        if not settings_mgr.is_loaded:
+            settings_mgr.load()
+        if settings_mgr.settings:
+            self.save(self.settings_key(), settings_mgr.settings)
+            if settings_mgr.settings.company:
+                self.save(self.organization_key(), settings_mgr.settings.company)
 
     def _build_ranges(self) -> None:
         """
@@ -245,7 +311,7 @@ class storage_manager(abstract_manager):
         piece = range_model.create_piece()
 
         for unit in (gram, kilogram, milliliter, liter, piece):
-            self.add(self.range_key(), unit)
+            self.save(self.range_key(), unit)
 
     def _build_groups(self) -> None:
         """
@@ -259,15 +325,15 @@ class storage_manager(abstract_manager):
             nomenclature_group_model.create_packaging(),
         ]
         for group in groups:
-            self.add(self.group_key(), group)
+            self.save(self.group_key(), group)
 
     def _build_nomenclature(self) -> None:
         """
         Создаёт базовые номенклатурные позиции через фабричный метод nomenclature_model.create
         и наполняет ими коллекцию.
         """
-        ranges = self.get(self.range_key())
-        groups = self.get(self.group_key())
+        ranges = self.collection(self.range_key())
+        groups = self.collection(self.group_key())
 
         def find_range(name: str) -> range_model:
             return next((r for r in ranges if r.name == name), None)
@@ -291,53 +357,48 @@ class storage_manager(abstract_manager):
             nomenclature_model.create("Соль", "Соль пищевая поваренная, 1 кг пачка", raw_group, kilogram),
             nomenclature_model.create("Сахар", "Сахар-песок белый кристаллический, 50 кг мешок", raw_group, kilogram),
             nomenclature_model.create("Масло подсолнечное", "Масло подсолнечное рафинированное, 5 л", raw_group, liter if liter else milliliter),
-            nomenclature_model.create("Тесто дрожжевое", "Тесто дрожжевое слоёное, полуфабрикат 1 кг", semi_group, kilogram),
-            nomenclature_model.create("Соус томатный", "Соус томатный базовый, полуфабрикат 200 г", semi_group, gram),
-            nomenclature_model.create("Коробка под пиццу 30 см", "Картонная коробка 300х300х40 мм", pack_group, piece),
-            nomenclature_model.create("Пакет бумажный", "Пакет бумажный крафт 20х30 см", pack_group, piece),
-            nomenclature_model.create("Сыр Моцарелла", "Сыр Моцарелла классический для пиццы", raw_group, gram),
-            nomenclature_model.create("Масло оливковое", "Масло оливковое Extra Virgin", raw_group, milliliter),
-            nomenclature_model.create("Базилик свежий", "Базилик свежий зелёный листья", raw_group, gram),
-            nomenclature_model.create("Соль пищевая", "Соль пищевая мелкого помола", raw_group, gram),
-            nomenclature_model.create("Пицца Маргарита", "Пицца Маргарита классическая 30 см", finished_group, piece),
+            nomenclature_model.create("Вода", "Вода питьевая очищенная", raw_group, liter if liter else milliliter),
+            nomenclature_model.create("Дрожжи сухие", "Дрожжи хлебопекарные сухие, 100 г", raw_group, gram if gram else kilogram),
+            nomenclature_model.create("Томатная паста", "Томатная паста концентрированная, 1 кг банка", raw_group, kilogram),
+            nomenclature_model.create("Сыр Моцарелла", "Сыр Моцарелла для пиццы, 1 кг брусок", raw_group, kilogram),
+            nomenclature_model.create("Тесто дрожжевое", "Тесто дрожжевое для основы пиццы", semi_group, kilogram),
+            nomenclature_model.create("Соус томатный фирменный", "Соус томатный для основы пиццы", semi_group, kilogram),
+            nomenclature_model.create("Коробка для пиццы", "Коробка картонная 30х30 см", pack_group, piece),
+            nomenclature_model.create("Пицца Маргарита", "Пицца Маргарита 30 см готовая к употреблению", finished_group, piece),
         ]
-
         for item in items:
-            self.add(self.nomenclature_key(), item)
+            self.save(self.nomenclature_key(), item)
 
     def _build_storages(self) -> None:
         """
         Создаёт базовые склады через фабричный метод storage_model.create
         и наполняет ими коллекцию.
         """
-        storages_data = [
-            ("Производственный цех", "г. Москва, ул. Цветочная, д. 10"),
-            ("Склад Ресторан №1 (Центральный)", "г. Москва, ул. Центральная, д. 1"),
-            ("Склад Ресторан №2 (Север)", "г. Москва, ул. Северная, д. 2"),
-            ("Склад Ресторан №3 (Юг)", "г. Москва, ул. Южная, д. 3"),
-            ("Склад Ресторан №4 (Доставка 1)", "г. Москва, ул. Доставочная, д. 4"),
-            ("Склад Ресторан №5 (Доставка 2)", "г. Москва, ул. Доставочная, д. 5"),
+        storages = [
+            storage_model.create("Основной склад сырья", "г. Москва, ул. Складская, д. 1"),
+            storage_model.create("Склад готовой продукции", "г. Москва, ул. Складская, д. 2"),
+            storage_model.create("Цеховой склад полуфабрикатов", "г. Москва, Производственный цех №1"),
         ]
-        for name, address in storages_data:
-            self.add(self.storage_key(), storage_model.create(name, address))
+        for st in storages:
+            self.save(self.storage_key(), st)
 
     def _build_recipes(self) -> None:
         """
         Создаёт технологические карты (рецепты) через фабричные методы recipe_model.
         Формирует рецепт с полуфабрикатами, а также рецепт с упаковкой.
         """
-        ranges = self.get(self.range_key())
-        groups = self.get(self.group_key())
-        nomenclatures = self.get(self.nomenclature_key())
+        ranges = self.collection(self.range_key())
+        groups = self.collection(self.group_key())
+        nomenclatures = self.collection(self.nomenclature_key())
 
         recipe_margarita = recipe_model.create_pizza_margarita(
             ranges=ranges, groups=groups, nomenclatures=nomenclatures
         )
         if recipe_margarita:
-            self.add(self.recipe_key(), recipe_margarita)
+            self.save(self.recipe_key(), recipe_margarita)
 
         recipe_packaged = recipe_model.create_pizza_with_packaging(
             ranges=ranges, groups=groups, nomenclatures=nomenclatures
         )
         if recipe_packaged:
-            self.add(self.recipe_key(), recipe_packaged)
+            self.save(self.recipe_key(), recipe_packaged)

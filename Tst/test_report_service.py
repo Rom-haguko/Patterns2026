@@ -43,7 +43,7 @@ def test_report_service_get_entity_found():
     # Подготовка
     service = report_service()
     manager = storage_manager()
-    recipes = manager.get(storage_manager.recipe_key())
+    recipes = manager.collection(storage_manager.recipe_key())
     target = recipes[0]
 
     # Действие

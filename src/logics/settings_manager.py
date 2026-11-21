@@ -4,7 +4,7 @@ from src.core.exception import operation_exception
 from src.core.file_resolver import file_path_resolver
 from src.core.validator import validator
 from src.models.settings_model import settings_model
-from src.models.organization_model import organization_model
+from src.logics.deserializer_factory import deserializer_factory
 
 
 class settings_manager(abstract_manager):
@@ -42,6 +42,13 @@ class settings_manager(abstract_manager):
         """
         return self.__settings
 
+    @settings.setter
+    def settings(self, value: settings_model) -> None:
+        """
+        Устанавливает актуальные настройки приложения.
+        """
+        self.__settings = value
+
     @property
     def is_loaded(self) -> bool:
         """
@@ -56,80 +63,23 @@ class settings_manager(abstract_manager):
         """
         return self.__data
 
-    def _get_first_valid(self, data_dict: dict, keys: list) -> str:
-        """
-        Ищет в словаре первое непустое значение по списку ключей.
-        """
-        for key in keys:
-            if key in data_dict and data_dict[key]:
-                return str(data_dict[key]).strip()
-        return ""
-
     def convert(self) -> bool:
         """
-        Обработка загруженных сырых данных JSON и преобразование в модель settings_model.
+        Обработка загруженных сырых данных JSON и преобразование в модель settings_model
+        с использованием фабрики-десериализатора deserializer_factory.
         """
         if not isinstance(self.__data, dict):
             return False
 
-        self.__settings = settings_model()
-
-        if "company" in self.__data and isinstance(self.__data["company"], dict):
-            comp_dict = self.__data["company"]
-            company = organization_model()
-
-            name_val = self._get_first_valid(comp_dict, ["name"])
-            if name_val:
-                company.name = name_val
-
-            inn_val = self._get_first_valid(comp_dict, ["inn"])
-            if not inn_val and "inn_kpp" in comp_dict and comp_dict["inn_kpp"]:
-                inn_part = str(comp_dict["inn_kpp"]).split("/")[0].strip()
-                if len(inn_part) in (10, 12) and inn_part.isdigit():
-                    inn_val = inn_part
-            if inn_val:
-                company.inn = inn_val
-
-            bik_val = self._get_first_valid(comp_dict, ["bik"])
-            if bik_val:
-                company.bik = bik_val
-
-            account_val = self._get_first_valid(comp_dict, ["account"])
-            if account_val:
-                company.account = account_val
-
-            ownership_val = self._get_first_valid(comp_dict, ["ownership_form"])
-            if ownership_val:
-                company.ownership_form = ownership_val
-
-            corr_account_val = self._get_first_valid(comp_dict, ["corr_account"])
-            if corr_account_val:
-                company.corr_account = corr_account_val
-
-            self.__settings.company = company
-
-        boss_val = self._get_first_valid(self.__data, ["boss_name"])
-        if not boss_val and "company" in self.__data and isinstance(self.__data["company"], dict):
-            boss_val = self._get_first_valid(self.__data["company"], ["ceo"])
-        if boss_val:
-            self.__settings.boss_name = boss_val
-
-        acc_name_val = self._get_first_valid(self.__data, ["account_name"])
-        if acc_name_val:
-            self.__settings.account_name = acc_name_val
-
-        format_val = self._get_first_valid(self.__data, ["response_format"])
-        if format_val:
-            self.__settings.response_format = format_val
-
+        factory = deserializer_factory()
+        self.__settings = factory.deserialize_value(self.__data, settings_model)
         return True
 
-    def load(self, file_name: str = "") -> bool:
+    def load(self, file_name: str = "") -> None:
         """
-        Загрузка данных из конфигурационного файла.
+        Загрузка данных из конфигурационного файла согласно контракту abstract_manager.
 
         :param file_name: Путь к файлу конфигурации (по умолчанию settings.json).
-        :return: True при успешной загрузке.
         :raises operation_exception: При ошибке загрузки или валидации данных.
         """
         inner_file_name = file_name.strip() if file_name and file_name.strip() != "" else self.__default_file_name
@@ -141,6 +91,5 @@ class settings_manager(abstract_manager):
             with open(resolved_file, "r", encoding="utf-8") as file:
                 self.__data = json.load(file)
                 self.__is_loaded = self.convert()
-                return self.__is_loaded
         except Exception as ex:
             raise operation_exception(f"Ошибка при загрузке и обработке данных: {ex}")
