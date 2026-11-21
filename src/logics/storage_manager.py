@@ -7,6 +7,8 @@ from src.models.storage_model import storage_model
 from src.models.recipe_model import recipe_model
 from src.models.organization_model import organization_model
 from src.models.settings_model import settings_model
+from src.models.turnover_model import turnover_model
+from src.dtos.turnover_type_enum import turnover_type_enum
 
 
 class storage_manager(abstract_manager):
@@ -64,6 +66,7 @@ class storage_manager(abstract_manager):
         self.register_entity_type(recipe_model, "рецепт", "recipe")
         self.register_entity_type(organization_model, "организация", "organization", "company")
         self.register_entity_type(settings_model, "настройки", "settings")
+        self.register_entity_type(turnover_model, "оборот", "turnover", "движение")
 
         self.__data = {}
         self.__data[self.range_key()] = []
@@ -73,6 +76,7 @@ class storage_manager(abstract_manager):
         self.__data[self.recipe_key()] = []
         self.__data[self.organization_key()] = []
         self.__data[self.settings_key()] = []
+        self.__data[self.turnover_key()] = []
         self._initialized = True
 
         self.convert()
@@ -132,6 +136,13 @@ class storage_manager(abstract_manager):
         Ключ доступа к коллекции настроек (settings_model).
         """
         return settings_model.__name__
+
+    @staticmethod
+    def turnover_key() -> str:
+        """
+        Ключ доступа к коллекции складских движений и оборотов (turnover_model).
+        """
+        return turnover_model.__name__
 
     @property
     def data(self) -> dict:
@@ -284,7 +295,72 @@ class storage_manager(abstract_manager):
         self._build_storages()
         self._build_recipes()
         self._build_settings()
+        self._build_turnovers()
         return True
+
+    def _build_turnovers(self) -> None:
+        """
+        Создаёт демонстрационные складские движения (приход и расход номенклатуры)
+        и сохраняет их в коллекцию хранилища.
+        """
+        storages = self.collection(self.storage_key())
+        nomenclatures = self.collection(self.nomenclature_key())
+        ranges = self.collection(self.range_key())
+
+        def find_storage(name: str) -> storage_model:
+            return next((s for s in storages if s.name == name), None)
+
+        def find_nomenclature(name: str) -> nomenclature_model:
+            return next((n for n in nomenclatures if n.name == name), None)
+
+        def find_range(name: str) -> range_model:
+            return next((r for r in ranges if r.name == name), None)
+
+        raw_storage = find_storage("Основной склад сырья")
+        finished_storage = find_storage("Склад готовой продукции")
+
+        flour = find_nomenclature("Мука пшеничная")
+        sugar = find_nomenclature("Сахар")
+        pizza = find_nomenclature("Пицца Маргарита")
+
+        kg = find_range("килограмм")
+        piece = find_range("штука")
+
+        if raw_storage and flour and kg:
+            # 1. Приход муки на склад сырья (100 кг)
+            self.save(
+                self.turnover_key(),
+                turnover_model.create(raw_storage, flour, kg, 100.0, turnover_type_enum.RECEIPT, name="Приход муки на склад сырья"),
+            )
+            # 2. Расход муки со склада сырья (20 кг)
+            self.save(
+                self.turnover_key(),
+                turnover_model.create(raw_storage, flour, kg, 20.0, turnover_type_enum.EXPENSE, name="Списание муки на производство"),
+            )
+
+        if raw_storage and sugar and kg:
+            # 3. Приход сахара на склад сырья (50 кг)
+            self.save(
+                self.turnover_key(),
+                turnover_model.create(raw_storage, sugar, kg, 50.0, turnover_type_enum.RECEIPT, name="Поступление сахара"),
+            )
+            # 4. Расход сахара со склада сырья (10 кг)
+            self.save(
+                self.turnover_key(),
+                turnover_model.create(raw_storage, sugar, kg, 10.0, turnover_type_enum.EXPENSE, name="Расход сахара на сироп"),
+            )
+
+        if finished_storage and pizza and piece:
+            # 5. Приход готовой пиццы (15 шт)
+            self.save(
+                self.turnover_key(),
+                turnover_model.create(finished_storage, pizza, piece, 15.0, turnover_type_enum.RECEIPT, name="Выпуск пиццы Маргарита"),
+            )
+            # 6. Расход пиццы на доставку (5 шт)
+            self.save(
+                self.turnover_key(),
+                turnover_model.create(finished_storage, pizza, piece, 5.0, turnover_type_enum.EXPENSE, name="Отгрузка пиццы курьеру"),
+            )
 
     def _build_settings(self) -> None:
         """

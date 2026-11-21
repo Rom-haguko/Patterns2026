@@ -7,6 +7,8 @@ from src.logics.basic_deserializer import basic_deserializer
 from src.logics.datetime_deserializer import datetime_deserializer
 from src.logics.deserialization_context import deserialization_context
 from src.logics.model_deserializer import model_deserializer
+from src.logics.filter_deserializer import filter_deserializer
+from src.dtos.filter_dto import filter_dto
 
 
 class deserializer_factory(abstract_deserializer_factory):
@@ -25,6 +27,7 @@ class deserializer_factory(abstract_deserializer_factory):
         self.__basic_deserializer = basic_deserializer()
         self.__datetime_deserializer = datetime_deserializer()
         self.__model_deserializer = model_deserializer(self, self.__context)
+        self.__filter_deserializer = filter_deserializer()
 
         self.__type_mapping: dict[type, abstract_deserializer] = {
             int: self.__basic_deserializer,
@@ -34,6 +37,7 @@ class deserializer_factory(abstract_deserializer_factory):
             datetime: self.__datetime_deserializer,
             date: self.__datetime_deserializer,
             time: self.__datetime_deserializer,
+            filter_dto: self.__filter_deserializer,
         }
 
     @property

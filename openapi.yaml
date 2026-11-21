@@ -1022,8 +1022,151 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/filter/{entity_type}:
+    post:
+      operationId: src.logics.api_server.api_server.filter_entities
+      summary: Фильтрация доменных объектов через шаблон Прототип
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FilterInput"
+      responses:
+        "200":
+          description: Отфильтрованный список объектов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "400":
+          description: Некорректные параметры фильтрации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Неизвестный тип сущности
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/filter/{entity_type}/schema:
+    get:
+      operationId: src.logics.api_server.api_server.get_filter_schema
+      summary: Получить схему доступных полей для фильтрации сущности
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Схема полей фильтрации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilterSchemaResponse"
+        "404":
+          description: Неизвестный тип сущности
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/osv:
+    post:
+      operationId: src.logics.api_server.api_server.get_osv_report
+      summary: Получить оборотно-сальдовую ведомость с фильтрацией через Прототип
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FilterInput"
+      responses:
+        "200":
+          description: Строки оборотно-сальдовой ведомости
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OsvRowResponse"
+        "400":
+          description: Некорректные параметры фильтрации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
+    FilterInput:
+      type: object
+      properties:
+        name:
+          type: string
+        name_filter_type:
+          type: string
+          default: LIKE
+        id:
+          type: string
+        id_filter_type:
+          type: string
+          default: EQUALS
+
+    OsvRowResponse:
+      type: object
+      properties:
+        storage:
+          type: object
+        nomenclature:
+          type: object
+        range:
+          type: object
+        initial_balance:
+          type: number
+        inflow:
+          type: number
+        outflow:
+          type: number
+        final_balance:
+          type: number
+
+    FilterSchemaResponse:
+      type: object
+      properties:
+        available_fields:
+          type: array
+          items:
+            type: string
+        nested_search_supported:
+          type: array
+          items:
+            type: string
+        filterable_nested_fields:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              nested_fields:
+                type: array
+                items:
+                  type: string
+
     ErrorResponse:
       type: object
       properties:
