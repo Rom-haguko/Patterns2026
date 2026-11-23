@@ -1,8 +1,13 @@
 import flask
+from src.core.exception import arguments_exception, operation_exception
 from src.dtos.report_type_enum import report_type_enum
+from src.logics.convert_factory import convert_factory
 from src.logics.storage_manager import storage_manager
 from src.logics.dependency_validator import entity_dependency_validator
 from src.logics.deserializer_factory import deserializer_factory
+from src.logics.filter_deserializer import filter_deserializer
+from src.logics.prototype_filter import prototype_filter
+from src.logics.osv_service import osv_service
 from src.logics.report_service import report_service
 from src.logics.handlers.range_handler import range_handler
 from src.logics.handlers.group_handler import group_handler
@@ -25,6 +30,17 @@ class api_server:
     _deserializer: deserializer_factory = None
     _report_service: report_service = None
     _handlers: dict = {}
+    _FILTER_METADATA: dict[str, list[str]] = {
+        "nomenclature": ["group", "range", "recipe"],
+        "range": ["base_range"],
+        "recipe": ["target_nomenclature", "rows", "steps"],
+        "nomenclature-group": [],
+        "group": [],
+        "storage": [],
+        "organization": [],
+        "settings": [],
+        "turnover": ["storage", "nomenclature", "range"],
+    }
 
     @classmethod
     def initialize(cls) -> None:
@@ -283,6 +299,96 @@ class api_server:
     @classmethod
     def delete_settings(cls, entity_id: str, **kwargs):
         return cls.get_handler("settings").delete(entity_id)
+
+    # ---------------------------------------------------------------------------
+    # Фильтрация (Прототип) и ОСВ
+    # ---------------------------------------------------------------------------
+
+    @classmethod
+    def _extract_body(cls, kwargs: dict = None) -> dict:
+        """
+        Извлекает JSON-тело из аргументов вызова Connexion или контекста Flask.
+        """
+        if kwargs and "body" in kwargs and isinstance(kwargs["body"], dict):
+            return kwargs["body"]
+        return cls._body()
+
+    @classmethod
+    def filter_entities(cls, entity_type: str, **kwargs):
+        """
+        POST /api/filter/{entity_type} — фильтрация доменных моделей через шаблон 'Прототип'.
+        Принимает в теле filter_dto (JSON), выполняет поиск (включая вложенные структуры)
+        и возвращает отфильтрованный список доменных сущностей.
+        """
+        body = cls._extract_body(kwargs)
+        try:
+            deserializer = filter_deserializer()
+            filter_item = deserializer.deserialize(body)
+        except (arguments_exception, operation_exception) as ex:
+            return {"error": str(ex)}, 400
+
+        clean_type = str(entity_type).strip().lower()
+        items = cls._storage.get_by_type(clean_type)
+
+        if items is None:
+            # Попытка найти по зарегистрированным хендлерам (например, nomenclature-group)
+            if clean_type in cls._handlers:
+                handler = cls._handlers[clean_type]
+                items = cls._storage.collection(handler._storage_key)
+            else:
+                return {"error": f"Неизвестный тип доменной модели: {entity_type}"}, 404
+
+        prototype = prototype_filter(items)
+        filtered_prototype = prototype.create(filter_item)
+
+        factory = convert_factory()
+        return [factory.convert_value(item) for item in filtered_prototype.data], 200
+
+    @classmethod
+    def get_osv_report(cls, **kwargs):
+        """
+        POST /api/osv — получение оборотно-сальдовой ведомости (ОСВ) с фильтрацией через 'Прототип'.
+        Принимает в теле filter_dto (JSON), рассчитывает сальдо и обороты,
+        фильтрует строки ведомости через prototype_filter и возвращает результат.
+        """
+        body = cls._extract_body(kwargs)
+        try:
+            deserializer = filter_deserializer()
+            filter_item = deserializer.deserialize(body)
+        except (arguments_exception, operation_exception) as ex:
+            return {"error": str(ex)}, 400
+
+        service = osv_service(cls._storage)
+        return service.get_osv_response(filter_item)
+
+    @classmethod
+    def get_filter_schema(cls, entity_type: str, **kwargs):
+        """
+        GET /api/filter/{entity_type}/schema — получение схемы доступных полей для фильтрации.
+        Возвращает поля прямой фильтрации и список связанных объектов для вложенного поиска.
+        """
+        clean_type = str(entity_type).strip().lower()
+
+        is_valid_type = (
+            clean_type in cls._FILTER_METADATA
+            or clean_type in cls._handlers
+            or cls._storage.get_by_type(clean_type) is not None
+        )
+        if not is_valid_type:
+            return {"error": f"Неизвестный тип доменной модели: {entity_type}"}, 404
+
+        nested_supported = cls._FILTER_METADATA.get(clean_type, [])
+        filterable_nested = [
+            {"field": field_name, "nested_fields": ["name", "id"]}
+            for field_name in nested_supported
+        ]
+
+        schema = {
+            "available_fields": ["name", "id"],
+            "nested_search_supported": nested_supported,
+            "filterable_nested_fields": filterable_nested,
+        }
+        return schema, 200
 
 
 api_server.initialize()
