@@ -31,7 +31,11 @@ class settings_handler(base_crud_handler):
     def _after_save(self, item: object) -> None:
         from src.logics.settings_manager import settings_manager
         settings_mgr = settings_manager()
-        if settings_mgr.settings and settings_mgr.settings.id == getattr(item, "id", None):
+        items = self._storage.collection(self._storage_key)
+        if (
+            (settings_mgr.settings and settings_mgr.settings.id == getattr(item, "id", None))
+            or (items and items[0].id == getattr(item, "id", None))
+        ):
             settings_mgr.settings = item
 
     @property

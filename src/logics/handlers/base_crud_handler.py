@@ -1,4 +1,7 @@
+from src.core.event_type import event_type
 from src.core.exception import arguments_exception, operation_exception
+from src.dtos.log_entry_dto import log_entry_dto
+from src.logics.observer import observer
 from src.logics.storage_manager import storage_manager
 from src.logics.dependency_validator import entity_dependency_validator
 from src.logics.deserializer_factory import deserializer_factory
@@ -37,6 +40,14 @@ class base_crud_handler(base_read_handler):
         if not added:
             return {"error": f"Объект с идентификатором {item.id} уже существует"}, 409
         self._after_save(item)
+        observer.create(
+            event_type.crud_create(),
+            log_entry_dto(
+                entity_type=self._model_class.__name__,
+                entity_id=str(getattr(item, "id", "")),
+                message=f"Создана сущность '{getattr(item, 'name', '')}'",
+            ),
+        )
         return self._to_dict(item), 201
 
     def update(self, entity_id: str, data: dict):
@@ -73,6 +84,14 @@ class base_crud_handler(base_read_handler):
 
         collection[existing_index] = updated
         self._after_save(updated)
+        observer.create(
+            event_type.crud_update(),
+            log_entry_dto(
+                entity_type=self._model_class.__name__,
+                entity_id=str(getattr(updated, "id", target_id)),
+                message=f"Обновлена сущность '{getattr(updated, 'name', '')}'",
+            ),
+        )
         return self._to_dict(updated), 200
 
     def delete(self, entity_id: str):
@@ -91,4 +110,12 @@ class base_crud_handler(base_read_handler):
             return {"error": f"{self._model_class.__name__} с id={entity_id} не найден"}, 404
 
         collection.pop(existing_index)
+        observer.create(
+            event_type.crud_delete(),
+            log_entry_dto(
+                entity_type=self._model_class.__name__,
+                entity_id=target_id,
+                message="Удалена сущность",
+            ),
+        )
         return "", 204

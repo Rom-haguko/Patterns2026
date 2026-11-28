@@ -1,7 +1,12 @@
+import functools
 import flask
+from src.core.event_type import event_type
 from src.core.exception import arguments_exception, operation_exception
+from src.dtos.log_entry_dto import log_entry_dto
 from src.dtos.report_type_enum import report_type_enum
 from src.logics.convert_factory import convert_factory
+from src.logics.log_service import log_service
+from src.logics.observer import observer
 from src.logics.storage_manager import storage_manager
 from src.logics.dependency_validator import entity_dependency_validator
 from src.logics.deserializer_factory import deserializer_factory
@@ -29,6 +34,7 @@ class api_server:
     _validator: entity_dependency_validator = None
     _deserializer: deserializer_factory = None
     _report_service: report_service = None
+    _log_service: log_service = None
     _handlers: dict = {}
     _FILTER_METADATA: dict[str, list[str]] = {
         "nomenclature": ["group", "range", "recipe"],
@@ -55,6 +61,8 @@ class api_server:
             cls._deserializer = deserializer_factory()
         if cls._report_service is None:
             cls._report_service = report_service(cls._storage)
+        if cls._log_service is None:
+            cls._log_service = log_service()
 
         cls._handlers = {
             "range": range_handler(cls._storage, cls._validator, cls._deserializer),
@@ -91,21 +99,47 @@ class api_server:
         """
         return flask.request.get_json(force=True, silent=True) or {}
 
+    @classmethod
+    def _log_web_call(cls, action: str) -> None:
+        """
+        Публикует событие вызова Web-метода через наблюдателя.
+        """
+        message = f"action={action}"
+        if flask.has_request_context():
+            message = f"{flask.request.method} {flask.request.path} ({action})"
+        observer.create(
+            event_type.web_request(),
+            log_entry_dto(
+                entity_type="api_server",
+                message=message,
+            ),
+        )
+
+    def _web_method(func):
+        """
+        Декоратор-обертка для методов API, фиксирующий вызов Web-метода.
+        """
+        @functools.wraps(func)
+        def wrapper(cls, *args, **kwargs):
+            cls._log_web_call(func.__name__)
+            return func(cls, *args, **kwargs)
+        return classmethod(wrapper)
+
     # ---------------------------------------------------------------------------
     # Отчёты
     # ---------------------------------------------------------------------------
 
-    @classmethod
+    @_web_method
     def api_get_report_formats(cls):
         """GET /api/report-formats — список доступных форматов отчётов."""
         return [member.name for member in report_type_enum], 200
 
-    @classmethod
+    @_web_method
     def get_default_report(cls, **kwargs):
         """GET /api/get_report — формирование текстового отчета по умолчанию."""
         return cls.get_report_service().get_default_recipe_report("Пицца Маргарита")
 
-    @classmethod
+    @_web_method
     def get_report_by_query(cls, **kwargs):
         """GET /api/report — формирование отчета через параметры строки запроса."""
         format_name = flask.request.args.get("format")
@@ -117,17 +151,17 @@ class api_server:
 
         return cls.get_report_service().get_report_response(entity_type, entity_code, format_name)
 
-    @classmethod
+    @_web_method
     def get_report_default(cls, entity_type: str, entity_code: str, **kwargs):
         """GET /api/report/default/{entity_type}/{entity_code} — формирование отчета по умолчанию."""
         return cls.get_report_service().get_report_response(entity_type, entity_code, None)
 
-    @classmethod
+    @_web_method
     def get_report_by_entity(cls, entity_type: str, entity_code: str, **kwargs):
         """GET /api/report/{entity_type}/{entity_code} — формирование отчета по умолчанию для сущности."""
         return cls.get_report_service().get_report_response(entity_type, entity_code, None)
 
-    @classmethod
+    @_web_method
     def get_report_by_format(cls, format_name: str, entity_type: str, entity_code: str, **kwargs):
         """GET /api/report/{format_name}/{entity_type}/{entity_code} — формирование отчета в формате."""
         return cls.get_report_service().get_report_response(entity_type, entity_code, format_name)
@@ -136,23 +170,23 @@ class api_server:
     # range
     # ---------------------------------------------------------------------------
 
-    @classmethod
+    @_web_method
     def get_all_range(cls):
         return cls.get_handler("range").get_all()
 
-    @classmethod
+    @_web_method
     def create_range(cls, **kwargs):
         return cls.get_handler("range").create(cls._body())
 
-    @classmethod
+    @_web_method
     def get_range_by_id(cls, entity_id: str, **kwargs):
         return cls.get_handler("range").get_by_id(entity_id)
 
-    @classmethod
+    @_web_method
     def update_range(cls, entity_id: str, **kwargs):
         return cls.get_handler("range").update(entity_id, cls._body())
 
-    @classmethod
+    @_web_method
     def delete_range(cls, entity_id: str, **kwargs):
         return cls.get_handler("range").delete(entity_id)
 
@@ -160,23 +194,23 @@ class api_server:
     # nomenclature-group
     # ---------------------------------------------------------------------------
 
-    @classmethod
+    @_web_method
     def get_all_nomenclature_group(cls):
         return cls.get_handler("nomenclature-group").get_all()
 
-    @classmethod
+    @_web_method
     def create_nomenclature_group(cls, **kwargs):
         return cls.get_handler("nomenclature-group").create(cls._body())
 
-    @classmethod
+    @_web_method
     def get_nomenclature_group_by_id(cls, entity_id: str, **kwargs):
         return cls.get_handler("nomenclature-group").get_by_id(entity_id)
 
-    @classmethod
+    @_web_method
     def update_nomenclature_group(cls, entity_id: str, **kwargs):
         return cls.get_handler("nomenclature-group").update(entity_id, cls._body())
 
-    @classmethod
+    @_web_method
     def delete_nomenclature_group(cls, entity_id: str, **kwargs):
         return cls.get_handler("nomenclature-group").delete(entity_id)
 
@@ -184,23 +218,23 @@ class api_server:
     # nomenclature
     # ---------------------------------------------------------------------------
 
-    @classmethod
+    @_web_method
     def get_all_nomenclature(cls):
         return cls.get_handler("nomenclature").get_all()
 
-    @classmethod
+    @_web_method
     def create_nomenclature(cls, **kwargs):
         return cls.get_handler("nomenclature").create(cls._body())
 
-    @classmethod
+    @_web_method
     def get_nomenclature_by_id(cls, entity_id: str, **kwargs):
         return cls.get_handler("nomenclature").get_by_id(entity_id)
 
-    @classmethod
+    @_web_method
     def update_nomenclature(cls, entity_id: str, **kwargs):
         return cls.get_handler("nomenclature").update(entity_id, cls._body())
 
-    @classmethod
+    @_web_method
     def delete_nomenclature(cls, entity_id: str, **kwargs):
         return cls.get_handler("nomenclature").delete(entity_id)
 
@@ -208,23 +242,23 @@ class api_server:
     # storage
     # ---------------------------------------------------------------------------
 
-    @classmethod
+    @_web_method
     def get_all_storage(cls):
         return cls.get_handler("storage").get_all()
 
-    @classmethod
+    @_web_method
     def create_storage(cls, **kwargs):
         return cls.get_handler("storage").create(cls._body())
 
-    @classmethod
+    @_web_method
     def get_storage_by_id(cls, entity_id: str, **kwargs):
         return cls.get_handler("storage").get_by_id(entity_id)
 
-    @classmethod
+    @_web_method
     def update_storage(cls, entity_id: str, **kwargs):
         return cls.get_handler("storage").update(entity_id, cls._body())
 
-    @classmethod
+    @_web_method
     def delete_storage(cls, entity_id: str, **kwargs):
         return cls.get_handler("storage").delete(entity_id)
 
@@ -232,23 +266,23 @@ class api_server:
     # recipe
     # ---------------------------------------------------------------------------
 
-    @classmethod
+    @_web_method
     def get_all_recipe(cls):
         return cls.get_handler("recipe").get_all()
 
-    @classmethod
+    @_web_method
     def create_recipe(cls, **kwargs):
         return cls.get_handler("recipe").create(cls._body())
 
-    @classmethod
+    @_web_method
     def get_recipe_by_id(cls, entity_id: str, **kwargs):
         return cls.get_handler("recipe").get_by_id(entity_id)
 
-    @classmethod
+    @_web_method
     def update_recipe(cls, entity_id: str, **kwargs):
         return cls.get_handler("recipe").update(entity_id, cls._body())
 
-    @classmethod
+    @_web_method
     def delete_recipe(cls, entity_id: str, **kwargs):
         return cls.get_handler("recipe").delete(entity_id)
 
@@ -256,23 +290,23 @@ class api_server:
     # organization
     # ---------------------------------------------------------------------------
 
-    @classmethod
+    @_web_method
     def get_all_organization(cls):
         return cls.get_handler("organization").get_all()
 
-    @classmethod
+    @_web_method
     def create_organization(cls, **kwargs):
         return cls.get_handler("organization").create(cls._body())
 
-    @classmethod
+    @_web_method
     def get_organization_by_id(cls, entity_id: str, **kwargs):
         return cls.get_handler("organization").get_by_id(entity_id)
 
-    @classmethod
+    @_web_method
     def update_organization(cls, entity_id: str, **kwargs):
         return cls.get_handler("organization").update(entity_id, cls._body())
 
-    @classmethod
+    @_web_method
     def delete_organization(cls, entity_id: str, **kwargs):
         return cls.get_handler("organization").delete(entity_id)
 
@@ -280,23 +314,23 @@ class api_server:
     # settings
     # ---------------------------------------------------------------------------
 
-    @classmethod
+    @_web_method
     def get_all_settings(cls):
         return cls.get_handler("settings").get_all()
 
-    @classmethod
+    @_web_method
     def create_settings(cls, **kwargs):
         return cls.get_handler("settings").create(cls._body())
 
-    @classmethod
+    @_web_method
     def get_settings_by_id(cls, entity_id: str, **kwargs):
         return cls.get_handler("settings").get_by_id(entity_id)
 
-    @classmethod
+    @_web_method
     def update_settings(cls, entity_id: str, **kwargs):
         return cls.get_handler("settings").update(entity_id, cls._body())
 
-    @classmethod
+    @_web_method
     def delete_settings(cls, entity_id: str, **kwargs):
         return cls.get_handler("settings").delete(entity_id)
 
@@ -313,7 +347,7 @@ class api_server:
             return kwargs["body"]
         return cls._body()
 
-    @classmethod
+    @_web_method
     def filter_entities(cls, entity_type: str, **kwargs):
         """
         POST /api/filter/{entity_type} — фильтрация доменных моделей через шаблон 'Прототип'.
@@ -344,7 +378,7 @@ class api_server:
         factory = convert_factory()
         return [factory.convert_value(item) for item in filtered_prototype.data], 200
 
-    @classmethod
+    @_web_method
     def get_osv_report(cls, **kwargs):
         """
         POST /api/osv — получение оборотно-сальдовой ведомости (ОСВ) с фильтрацией через 'Прототип'.
@@ -361,7 +395,7 @@ class api_server:
         service = osv_service(cls._storage)
         return service.get_osv_response(filter_item)
 
-    @classmethod
+    @_web_method
     def get_filter_schema(cls, entity_type: str, **kwargs):
         """
         GET /api/filter/{entity_type}/schema — получение схемы доступных полей для фильтрации.
