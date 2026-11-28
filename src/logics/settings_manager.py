@@ -1,8 +1,11 @@
 import json
 from src.core.abstract_manager import abstract_manager
+from src.core.event_type import event_type
 from src.core.exception import operation_exception
 from src.core.file_resolver import file_path_resolver
 from src.core.validator import validator
+from src.dtos.log_entry_dto import log_entry_dto
+from src.logics.observer import observer
 from src.models.settings_model import settings_model
 from src.logics.deserializer_factory import deserializer_factory
 
@@ -45,9 +48,18 @@ class settings_manager(abstract_manager):
     @settings.setter
     def settings(self, value: settings_model) -> None:
         """
-        Устанавливает актуальные настройки приложения.
+        Устанавливает актуальные настройки приложения и оповещает наблюдателей.
         """
         self.__settings = value
+        if getattr(self, "_initialized", False) and value is not None:
+            observer.create(
+                event_type.change_settings(),
+                log_entry_dto(
+                    entity_type="settings_model",
+                    entity_id=str(getattr(value, "id", "")),
+                    message=f"Изменены настройки: response_format={getattr(value, 'response_format', '')}",
+                ),
+            )
 
     @property
     def is_loaded(self) -> bool:
@@ -91,5 +103,22 @@ class settings_manager(abstract_manager):
             with open(resolved_file, "r", encoding="utf-8") as file:
                 self.__data = json.load(file)
                 self.__is_loaded = self.convert()
+                if self.__is_loaded:
+                    observer.create(
+                        event_type.load_settings(),
+                        log_entry_dto(
+                            entity_type="settings_model",
+                            entity_id=str(getattr(self.__settings, "id", "")),
+                            message=f"Загружены настройки из файла '{inner_file_name}'",
+                        ),
+                    )
+                else:
+                    observer.create(
+                        event_type.change_settings(),
+                        log_entry_dto(
+                            entity_type="settings_model",
+                            message=f"Ошибка конвертации файла '{inner_file_name}', применены настройки по умолчанию",
+                        ),
+                    )
         except Exception as ex:
             raise operation_exception(f"Ошибка при загрузке и обработке данных: {ex}")

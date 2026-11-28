@@ -1,7 +1,10 @@
+from src.core.event_type import event_type
 from src.dtos.filter_dto import filter_dto
+from src.dtos.log_entry_dto import log_entry_dto
 from src.dtos.osv_row_dto import osv_row_dto
 from src.dtos.turnover_type_enum import turnover_type_enum
 from src.logics.convert_factory import convert_factory
+from src.logics.observer import observer
 from src.logics.prototype_filter import prototype_filter
 from src.logics.storage_manager import storage_manager
 
@@ -79,6 +82,14 @@ class osv_service:
         # Применение шаблона Прототип для фильтрации строк ведомости
         prototype = prototype_filter(raw_osv_rows)
         filtered_prototype = prototype.create(filter_item)
+        is_filtered = bool(filter_item is not None and not filter_item.is_empty)
+        observer.create(
+            event_type.warehouse_osv(),
+            log_entry_dto(
+                entity_type="osv_row_dto",
+                message=f"Сформирована ОСВ: строк={len(filtered_prototype.data)}, фильтр={is_filtered}",
+            ),
+        )
         return filtered_prototype.data
 
     def get_osv_response(self, filter_item: filter_dto = None):
